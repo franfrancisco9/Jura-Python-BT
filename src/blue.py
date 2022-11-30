@@ -29,7 +29,6 @@ ALERTS = {
 # code_coffee = "".join(["%02x" % d for d in code_coffee])
 # print(code_coffee)
 
-
 # define function that receives decoded machine status and converts it to the corresponding alerts (if any)
 # if corresponing bit is not set, the alert is not active
 # remove key from the beggining
@@ -141,14 +140,14 @@ while True:
         print("Failed to connect to device. Retrying...")
         continue
 while True:
-    # print time in seconds since it was connected
-    print("\nTime elapsed: " + str(int(time.time() - initial_time)))
-    time.sleep(0.004)
+    time.sleep(0.001)
     child.sendline("char-read-hnd " + heartbeat_handle)
     child.expect(": ")
     #print(child.readline())
     # if time elapsed is a multiple of 15 seconds then send keep alive code
-    if int(time.time() - initial_time) % 15 == 0:
+    if int(time.time() - initial_time) % 10 == 0:
+        # print time in seconds since it was connected
+        print("\nTime elapsed: " + str(int(time.time() - initial_time)))
         child.sendline("char-write-req " + heartbeat_handle + " " + keep_alive_code)
         print("Keep alive sent!")    
     # if int(time.time() - initial_time) == 20:
@@ -158,12 +157,12 @@ while True:
     if int(time.time() - initial_time) % 1 == 0:
         for key in characteristics:
             # get only machine_status, heartbeat_read and product_progress
-            if  key == "machine_status" or key == "uart_rx": #oror key == "uart_rx": # or key == "machine_status":
+            if  key == "machine_status" or key == "uart_tx": # key == "machine_status" or  oror key == "uart_rx": # or key == "machine_status":
                 print("\nCurrently reading: " + key)
                 child.sendline("char-read-hnd " + characteristics[key][1])
                 child.expect(": ")
                 data = child.readline()
-                #print("Data: " + data)
+                print(b"Data: " + data)
                 try: 
                     data = [int(x, 16) for x in data.split()]
                     decoded = BtEncoder.encDecBytes(data, KEY_DEC)
@@ -178,8 +177,7 @@ while True:
                         #print("UART Tx not decoded: " + " ".join(["%02x" % d for d in decoded[1:]]))
                         print("UART Tx: \n" + "".join([chr(d) for d in decoded[1:]]))
                         print("\n As hex:\n" + " ".join(["%02x" % d for d in decoded]))
-                        print("\n As int:\n" + str(decoded))
-                    elif key == "uart_rx":
+                    elif key == "uart_rx" and data[0] != 0:
                         #continue
                         #print(data)
                         print("UART Rx: \n" + "".join([chr(d) for d in decoded[1:]]))
@@ -192,17 +190,18 @@ while True:
     # if int(time.time() - initial_time) in [15, 16]:                     #2A 03 00 04 14 00 00 01 00 01 00 00 00 00 00 2A    
     #     child.sendline("char-write-req " + start_product_handle + " " + "77e93dd55381d3dba32bfa98a4a3faf9")
     #     print("Start product sent!")
-    if int(time.time() - initial_time) in [10, 11]:# and False:     
-        command = ["5b 5f 5f 5f", "5f 7b 5f 5f", "7b 7b 7f 5b", "5f 7f 5b 5b", "7b 7b 5b 5b"]
+    if int(time.time() - initial_time) in [10, 20]:# and False:     
+        command = b"TY:\r\n" # FN:89 to enter and FN:90 to exit
+        command = [KEY_DEC + " " + JuraEncoder.tojura(chr(c).encode(), 1) for c in command]
+        command = [BtEncoder.encDecBytes([int(x, 16) for x in i.split()], KEY_DEC) for i in command]
+        command = ["".join(["%02x" % d for d in i]) for i in command]
+        print("Command: " + str(command))
         # for each command send wait 8 milleniums and send the next command
         for c in command:
-            code_info = KEY_DEC + " " + c
-            encode = BtEncoder.encDecBytes([int(x, 16) for x in code_info.split()], KEY_DEC)
-            encode = "".join(["%02x" % d for d in encode])
-            child.sendline("char-write-req " + uart_tx_hnd + " " + encode)
+            child.sendline("char-write-req " + uart_rx_hnd + " " + c)
             print(child.readline())
             print(child.readline())
-            time.sleep(0.008)
+            time.sleep(0.001)
         print("TY Test Sent")
 
         # # get current key
