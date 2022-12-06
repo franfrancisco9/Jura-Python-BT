@@ -91,10 +91,11 @@ def testencoder():
     print("Hex: ", hex)
     chars_bytes = b""
     chars_hex = b""
-
     for arr_hex in hex:
         chars_hex += jura.fromjura(arr_hex, 1)
-
+    # 0F FF 11 FF FF 11 00 00
+    # bytes = [[bitarray('00001111'), bitarray('11111111'), bitarray('00010001'), bitarray('11111111')],
+    # [bitarray('11110001'), bitarray('00000000'), bitarray('00000000'), bitarray('00000000')]]
     for arr in bytes:
         chars_bytes += jura.fromjura(arr)
 
