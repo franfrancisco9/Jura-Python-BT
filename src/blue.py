@@ -77,11 +77,11 @@ start_product_handle = "0x000e"
 statistics_data_uuid = "5A401534-ab2e-2548-c435-08c300000710"
 statistics_data_handle = "0x0029"
 
-uart_tx_uuid = "5a401624-ab2e-2548-c435-08c300000710"
-uart_tx_hnd = "0x0036"
+uart_rx_uuid = "5a401624-ab2e-2548-c435-08c300000710"
+uart_rx_hnd = "0x0036"
 
-uart_rx_uuid = "5a401625-ab2e-2548-c435-08c300000710"
-uart_rx_hnd = "0x0039"
+uart_tx_uuid = "5a401625-ab2e-2548-c435-08c300000710"
+uart_tx_hnd = "0x0039"
 
 #keep_alive_code = "0e f7 2a"
 
@@ -140,7 +140,7 @@ while True:
         print("Failed to connect to device. Retrying...")
         continue
 while True:
-    time.sleep(0.001)
+    time.sleep(1)
     child.sendline("char-read-hnd " + heartbeat_handle)
     child.expect(": ")
     #print(child.readline())
@@ -154,10 +154,10 @@ while True:
     #     child.sendline("char-write-req " + heartbeat_handle + " 771b35")
     #     print("Machine Restarted!")
     # Every 5 seconds read all characteristics and decode them to hex using BtEncoder.encDecBytes
-    if int(time.time() - initial_time) % 1 == 0:
+    if int(time.time() - initial_time) % 5 == 0:
         for key in characteristics:
             # get only machine_status, heartbeat_read and product_progress
-            if  key == "machine_status" or key == "uart_tx": # key == "machine_status" or  oror key == "uart_rx": # or key == "machine_status":
+            if  key == "machine_status" or key == "uart_rx": # or key == "machine_status":
                 print("\nCurrently reading: " + key)
                 child.sendline("char-read-hnd " + characteristics[key][1])
                 child.expect(": ")
@@ -190,18 +190,18 @@ while True:
     # if int(time.time() - initial_time) in [15, 16]:                     #2A 03 00 04 14 00 00 01 00 01 00 00 00 00 00 2A    
     #     child.sendline("char-write-req " + start_product_handle + " " + "77e93dd55381d3dba32bfa98a4a3faf9")
     #     print("Start product sent!")
-    if int(time.time() - initial_time) in [10, 20]:# and False:     
+    if int(time.time() - initial_time) in [30, 31, 32]:# and False:     
         command = b"TY:\r\n" # FN:89 to enter and FN:90 to exit
         command = [KEY_DEC + " " + JuraEncoder.tojura(chr(c).encode(), 1) for c in command]
         command = [BtEncoder.encDecBytes([int(x, 16) for x in i.split()], KEY_DEC) for i in command]
         command = ["".join(["%02x" % d for d in i]) for i in command]
         print("Command: " + str(command))
         # for each command send wait 8 milleniums and send the next command
-        for c in command:
-            child.sendline("char-write-req " + uart_rx_hnd + " " + c)
-            print(child.readline())
-            print(child.readline())
-            time.sleep(0.001)
+        # for c in command:
+        child.sendline("char-write-req " + uart_tx_hnd + " " + command[0])
+        print(child.readline())
+        print(child.readline())
+        #time.sleep(1.5)
         print("TY Test Sent")
 
         # # get current key

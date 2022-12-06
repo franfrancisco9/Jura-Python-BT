@@ -54,8 +54,8 @@ class BtEncoder:
 if __name__ == "__main__":
     # test
     bt = BtEncoder()
-    key = "2a"
-    data = ["2a 7F 80"]
+    data = ["fb f3 44 53 c5 41 7b 7d 13 4d 6d 94 4a ec 1d a8 31 48 7f ee"]
+    key = bt.bruteforce_key(data[0])
     for data in data:
         data = [int(d, 16) for d in data.split()]
         # decode data with key
