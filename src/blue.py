@@ -4,14 +4,55 @@ from bt_encoder import BtEncoder
 from jura_encoder import JuraEncoder
 from setup import setup
 import os 
+from dotenv import load_dotenv
+from connection import *
+import pymysql  
+pymysql.install_as_MySQLdb()
+import MySQLdb as mdb
+import RPi.GPIO as GPIO
+import lcddriver
+import MFRC522
+import signal
+import time
+import serial
+from bitarray import bitarray
+
+
+
+load_dotenv()
+
 BtEncoder = BtEncoder()
 JuraEncoder = JuraEncoder()
 
 # BlackBetty2 mac address read from .env file
-file = open(".env", "r")
-env = file.read()
-DEVICE = env.split("=")[1].strip() 
+DEVICE = os.getenv("DEVICE")
 print(DEVICE)
+
+mastercard1 = os.getenv("MASTER_CARD_1")
+mastercard2 = os.getenv("MASTER_CARD_2")
+passwd = os.getenv("PASSWD")
+
+# Open database connection
+db = mdb.connect(host = "localhost", user = "root", passwd = os.getenv("passwd"), db = "AnnelieseDB")
+
+# Initialize LCD
+lcd = lcddriver.lcd()
+lcd.lcd_clear()
+
+priceCoffee = {
+    "Ristretto":0.45,
+	"Espresso":0.45,
+    "Coffee":0.45,
+    "Cappuccino":0.6,
+    "Milkcoffee":0.6,
+    "Espresso Macchiato":0.55,
+    "Latte Macchiato":0.75,
+    "Milk Foam":0.25,
+    "Flat White":0.7
+}
+
+# Define pin for buzzer
+BUZZER = 7
 
 PRODUCTS = {
     0:"Overall",
@@ -49,6 +90,7 @@ def lockUnlockMachine(code, lock_status):
         lock_status = "unlocked"
     else:
         lock_status = "locked"
+    return lock_status
         
 # define function that receives decoded machine status and converts it to the corresponding alerts (if any)
 # if corresponing bit is not set, the alert is not active
@@ -120,26 +162,70 @@ characteristics = {
     "uart_rx": [uart_rx_uuid, uart_rx_hnd]
 }
 
-lock_status = "unlocked"
 
 child, keep_alive_code, locking_code, unlock_code, KEY_DEC, all_statistics, initial_time, CURRENT_STATISTICS = setup(DEVICE, characteristics)
+# lock_status = "unlocked"
+# lock_status = lockUnlockMachine(locking_code, lock_status)
+# print("Machine locked!")
 
-while True:
-    time.sleep(1)
-    child.sendline("char-read-hnd " + heartbeat_handle)
-    child.expect(": ")
-    #print(child.readline())
+# Hook the SIGINT
+signal.signal(signal.SIGINT, end_read)
+
+# Create an object of the class MFRC522
+MIFAREReader = MFRC522.MFRC522()
+
+# Init buzzer
+setupBuzzer(BUZZER)
+
+# Init Serial
+port = serial.Serial("/dev/serial0", baudrate = 9600, timeout = 1.0)
+print("Serial connection initialized")
+
+lcd.lcd_display_string("   Machine Locked   ", 1)
+lcd.lcd_display_string("      ~~~~~~~~      ", 2)
+lcd.lcd_display_string(" Put tag to unlock  ", 3)
+lcd.lcd_display_string("  -----> :) <-----  ", 4)
+time.sleep(1)
+beep(0.1)
+
+port.flushInput()
+
+buttonPress = False
+continue_reading = True
+
+# Welcome message
+print("Welcome to the BlackBetty 2")
+print("Press Ctrl-C to stop.")
+
+lastSeen = ""
+counter = 0
+disp_init = 1
+
+while continue_reading:
     # if time elapsed is a multiple of 15 seconds then send keep alive code
     if int(time.time() - initial_time) % 5 == 0:
         # print time in seconds since it was connected
         print("\nTime elapsed: " + str(int(time.time() - initial_time)))
         child.sendline("char-write-req " + heartbeat_handle + " " + keep_alive_code)
-        print("Keep alive sent!")  
-    if int (time.time() - initial_time) % 2 == 0:
+        print("Keep alive sent!") 
+
+    if disp_init == 1:
+        lcd.lcd_clear()
+        lcd.lcd_display_string("  Put Tag and then  ", 1)
+        lcd.lcd_display_string("   Choose Product   ", 2)
+        lcd.lcd_display_string("     In machine     ", 3)
+        lcd.lcd_display_string("         :)         ", 4)
+        disp_init = 0
+        time.sleep(0.5)
+
+    uid_str = scanCard() 
+    print("UID: " + uid_str)
+
+    if lock_status == "unlocked":
         # write the all statistics command to statistics_command_handle
         child.sendline("char-write-req " + statistics_command_handle + " " + all_statistics)
         #print("All statistics sent!")
-    if int (time.time() - initial_time) % 2 == 1:
+        time.sleep(1.2)
         # read the statistics data from statistics_data_handle
         child.sendline("char-read-hnd " + statistics_data_handle)
         child.expect(": ")
@@ -164,21 +250,21 @@ while True:
         #print("Decoded statistics data: " + " ".join(["%02x" % d for d in decoded]))
 
     # Every 5 seconds read machine_status and decode them to hex using BtEncoder.encDecBytes
-    if int(time.time() - initial_time) % 5 == 0:
-        key = "machine_status"
-        print("\nCurrently reading: " + key)
-        child.sendline("char-read-hnd " + characteristics[key][1])
-        child.expect(": ")
-        data = child.readline()
-        print(b"Data: " + data)
-        try: 
-            data = [int(x, 16) for x in data.split()]
-            decoded = BtEncoder.encDecBytes(data, KEY_DEC)
-            #print("Decoded data as INT: " + str(decoded))
-            # if key is machine_status, decode it to alerts
-            if key == "machine_status":
-                print("\nDecoded data as HEX: " + " ".join(["%02x" % d for d in decoded]))
-                getAlerts(" ".join(["%02x" % d for d in decoded]))
-        except:
-            print("Error decoding data due to " + str(data))
+    # if int(time.time() - initial_time) % 5 == 0:
+    #     key = "machine_status"
+    #     print("\nCurrently reading: " + key)
+    #     child.sendline("char-read-hnd " + characteristics[key][1])
+    #     child.expect(": ")
+    #     data = child.readline()
+    #     print(b"Data: " + data)
+    #     try: 
+    #         data = [int(x, 16) for x in data.split()]
+    #         decoded = BtEncoder.encDecBytes(data, KEY_DEC)
+    #         #print("Decoded data as INT: " + str(decoded))
+    #         # if key is machine_status, decode it to alerts
+    #         if key == "machine_status":
+    #             print("\nDecoded data as HEX: " + " ".join(["%02x" % d for d in decoded]))
+    #             getAlerts(" ".join(["%02x" % d for d in decoded]))
+    #     except:
+    #         print("Error decoding data due to " + str(data))
 

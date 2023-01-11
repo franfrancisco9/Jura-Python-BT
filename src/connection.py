@@ -1,32 +1,3 @@
-import MySQLdb as mdb
-import RPi.GPIO as GPIO
-import lcddriver
-import MFRC522
-import signal
-import time
-import serial
-from bitarray import bitarray
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
-
-# Define product commands from coffeemaker
-products = "ABCDEFGHJ"
-priceCoffee = {
-    "Ristretto":0.45,
-	"Espresso":0.45,
-    "Coffee":0.45,
-    "Cappuccino":0.6,
-    "Milkcoffee":0.6,
-    "Espresso Macchiato":0.55,
-    "Latte Macchiato":0.75,
-    "Milk Foam":0.25,
-    "Flat White":0.7
-}
-
-# Define pin for buzzer
-BUZZER = 7
 
 def setupBuzzer(pin):
 	global BuzzerPin
@@ -39,17 +10,6 @@ def beep(duration):
 	GPIO.output(BuzzerPin, GPIO.LOW)
 	time.sleep(duration)
 	GPIO.output(BuzzerPin, GPIO.HIGH)
-
-# Define Mastercard to toggle lock and unlock
-mastercard1 = os.getenv("mastercard1")
-mastercard2 = os.getenv("mastercard2")
-
-# Open database connection
-db = mdb.connect(host = "localhost", user = "root", passwd = os.getenv("passwd"), db = "AnnelieseDB")
-
-# Initialize LCD
-lcd = lcddriver.lcd()
-lcd.lcd_clear()
 
 def sleepTimer(secs):
 	startTime = time.time()
@@ -199,7 +159,7 @@ def scanCard():
 # while continue_reading:
 # 	if disp_init == 1:
 # 		lcd.lcd_clear()
-# 		lcd.lcd_display_string("   Tag detected!    ", 1)
+# 		lcd.lcd_display_string("  Put Tag and then  ", 1)
 # 		lcd.lcd_display_string("   Choose Product   ", 2)
 # 		lcd.lcd_display_string("     In machine     ", 3)
 # 		lcd.lcd_display_string("         :)         ", 4)
