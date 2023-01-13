@@ -83,7 +83,7 @@ continue_reading = True
 # Capture SIGINT for cleanup when the script is aborted
 def end_read(signal,frame):
     global continue_reading
-    print "Ctrl+C captured, ending read."
+    print ("Ctrl+C captured, ending read.")
     continue_reading = False
     GPIO.cleanup()
 
@@ -97,8 +97,8 @@ MIFAREReader = MFRC522.MFRC522()
 lcd_init()
 
 # Welcome message
-print "Welcome to the MFRC522 data read example"
-print "Press Ctrl-C to stop."
+print ("Welcome to the MFRC522 data read example")
+print ("Press Ctrl-C to stop.")
 
 # This loop keeps checking for chips. If one is near it will get the UID and authenticate
 while continue_reading:
@@ -108,7 +108,7 @@ while continue_reading:
 
     # If a card is found
     if status == MIFAREReader.MI_OK:
-        print "Card detected"
+        print ("Card detected")
     
     # Get the UID of the card
     (status,uid) = MIFAREReader.MFRC522_Anticoll()
@@ -122,6 +122,6 @@ while continue_reading:
 	eur = 10
 	cent = 75
 	betrag = str(eur) + "," + str(cent).zfill(2)  
-	print "Card read UID: " + uid_str
+	print ("Card read UID: " + uid_str)
 	lcd_string("UID "+uid_str,LCD_LINE_1)
 	lcd_string("Betrag " +betrag+ " EUR",LCD_LINE_2)
