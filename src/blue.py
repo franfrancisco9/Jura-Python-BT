@@ -48,7 +48,7 @@ mastercard2 = os.getenv("MASTER_CARD_2")
 passwd = os.getenv("PASSWD")
 
 # Open database connection
-#db = mdb.connect(host = "127.0.0.1", user = "root", passwd = os.getenv("PASSWD"), db = "AnnelieseDB")
+db = mdb.connect(host = "127.0.0.1", user = "root", passwd = os.getenv("PASSWD"), db = "AnnelieseDB")
 
 # Initialize LCD
 lcd = lcddriver.lcd()
@@ -77,7 +77,8 @@ PRODUCTS = {
     6:"Espresso Macchiato",
     7:"Latte Macchiato",
     8:"Milk Foam",
-    9:"Flat White"
+    9:"Flat White",
+    58:"Something"
 }
 
 ALERTS = {
@@ -91,7 +92,9 @@ ALERTS = {
     33: "decalc alert", 34: "cleaning alert", 35: "cappu rinse alert", 36: "energy safe", 37: "active RF filter",
     38: "RemoteScreen", 39: "LockedKeys", 40: "close tab", 41: "cappu clean alert", 42: "Info - cappu clean alert",
     43: "Info - coffee clean alert", 44: "Info - decalc alert", 45: "Info - filter used up alert", 46: "steam ready",
-    47: "SwitchOff Delay active", 48: "close front cover", 49: "left bean alert", 50: "right bean alert"
+    47: "SwitchOff Delay active", 48: "close front cover", 49: "left bean alert", 50: "right bean alert", 51: "cleaning",
+    52: "cleaning finished", 53: "cleaning finished", 54: "cleaning finished", 55: "cleaning finished",
+    56: "cleaning finished", 57: "cleaning finished", 58: "cleaning finished", 59: "cleaning finished",
 }
 
 def sleepTimer(secs):
@@ -275,7 +278,7 @@ child, keep_alive_code, locking_code, unlock_code, KEY_DEC, all_statistics, init
 # Capture SIGINT for cleanup when the script is aborted
 def end_read(signal,frame):
 	global continue_reading
-	beep(3)
+	beep(2)
 	print("Ctrl+C captured, ending read.")
 	inkasso = 0
 	lcd.lcd_display_string("  Programm beendet  ", 1)
@@ -284,11 +287,11 @@ def end_read(signal,frame):
 	lcd.lcd_display_string("  -----> :( <-----  ", 4)
 	time.sleep(1)
 	lcd.lcd_clear()
-	#db.close()
+	db.close()
 	continue_reading = False
 	GPIO.cleanup()
 	_ = lockUnlockMachine(unlock_code, "locked")
-emergency_unlock = 0
+emergency_unlock = 1
 if emergency_unlock == 0:
     lock_status = "unlocked"
     lock_status = lockUnlockMachine(locking_code, lock_status)
@@ -317,7 +320,7 @@ lcd.lcd_display_string("      ~~~~~~~~      ", 2)
 lcd.lcd_display_string(" Put tag to unlock  ", 3)
 lcd.lcd_display_string("  -----> :) <-----  ", 4)
 time.sleep(1)
-beep(0.1)
+beep(0.01)
 
 port.flushInput()
 
@@ -331,14 +334,37 @@ print("Press Ctrl-C to stop.")
 lastSeen = ""
 counter = 0
 disp_init = 1
-
+payment_to_date = 1
+client_to_pay = ""
 while continue_reading:
     # if time elapsed is a multiple of 15 seconds then send keep alive code
     if int(time.time() - initial_time) % 5 == 0:
         # print time in seconds since it was connected
-        print("\nTime elapsed: " + str(int(time.time() - initial_time)))
+        #print("\nTime elapsed: " + str(int(time.time() - initial_time)))
         child.sendline("char-write-req " + heartbeat_handle + " " + keep_alive_code)
-        print("Keep alive sent!") 
+        #print("Keep alive sent!") 
+        child.sendline("char-read-hnd " + product_progress_handle)
+        child.expect(": ")
+        data = child.readline()
+        print(data)
+        data = [int(x, 16) for x in data.split()]
+        decoded = BtEncoder.encDecBytes(data, KEY_DEC)
+        # join decoded data to a list for every three bytes example: [001200, 000000, 000098]
+        decoded = ["".join(["%02x" % d for d in decoded[i:i+3]]) for i in range(0, len(decoded), 3)]
+        
+        # for every hex string in decoded list, convert to int
+        decoded = [int(x, 16) for x in decoded] 
+        print("Product progress data: " + str(decoded))
+        # read machine status and get alerts:
+        child.sendline("char-read-hnd " + machine_status_handle)
+        child.expect(": ")
+        data = child.readline()
+        print(b"Data: " + data)
+        data = [int(x, 16) for x in data.split()]
+        decoded = BtEncoder.encDecBytes(data, KEY_DEC)
+        print("\nDecoded data as HEX: " + " ".join(["%02x" % d for d in decoded]))
+        getAlerts(" ".join(["%02x" % d for d in decoded]))
+
 
     if disp_init == 1:
         lcd.lcd_clear()
@@ -349,10 +375,84 @@ while continue_reading:
         disp_init = 0
         time.sleep(0.5)
 
+    if payment_to_date == 0:
+        # read the statistics data from statistics_data_handle
+        child.sendline("char-read-hnd " + statistics_data_handle)
+        child.expect(": ")
+        data = child.readline()
+        #print(b"Statistics data: " + data)
+        # decode the statistics data
+        data = [int(x, 16) for x in data.split()]
+        decoded = BtEncoder.encDecBytes(data, KEY_DEC)
+        # join decoded data to a list for every three bytes example: [001200, 000000, 000098]
+        decoded = ["".join(["%02x" % d for d in decoded[i:i+3]]) for i in range(0, len(decoded), 3)]
+        # for every hex string in decoded list, convert to int
+        decoded = [int(x, 16) for x in decoded]
+        # change the values that are different from the previous ones when comparing with CURRENT_STATISTICS
+        if decoded[0] != CURRENT_STATISTICS[0]:
+            #lock_status = lockUnlockMachine(locking_code, lock_status)
+            print("Overall products increased by 1")
+            CURRENT_STATISTICS[0] = decoded[0]
+            
+        for i in range(1, len(decoded)):
+            if decoded[i] != CURRENT_STATISTICS[i]:
+                print("A " + PRODUCTS[i] + " was made!")
+                product_made = PRODUCTS[i]
+                chosen = 1
+                print("Value changed: " + str(decoded[i]) + " -> " + str(CURRENT_STATISTICS[i]))
+                CURRENT_STATISTICS[i] = decoded[i]
+        if chosen == 1:    
+            print("Setting value for uid: " + lastSeen)
+            value_new = value - priceCoffee[product_made]
+        if value_new >= 0 and chosen == 1:
+            # beep(0.05)
+            # time.sleep(0.1)
+            # beep(0.05)
+            set_value(uid_str, value_new)
+            payment_to_date = 1
+            #set_buylist(uid_str, str("General"), priceCoffee[product_made])
+            # msgStr1 = str(" Kaffee abgebucht!")
+            # msgStr2 = str("  Betty dankt :)  ")
+            # value_str = str("Guthaben: " + str('%.2f' % value_new) + " EUR")
+            # lcd.lcd_display_string(msgStr1, 1)
+            # lcd.lcd_display_string(msgStr2, 2)
+            # lcd.lcd_display_string(value_str, 4)
+            # sleepTimer(4)
+            # lcd.lcd_clear()
+            lastSeen = ""
+            counter = 0
+            disp_init = 1
+            product_made = False
+        elif value_new < 0 and chosen == 1:
+            lcd.lcd_clear()
+            set_value(uid_str, value_new)
+            payment_to_date = 1
+            #set_buylist(uid_str, str("General"), 0.5)
+            # msgStr1 =   str(" Kaffee abgebucht!")
+            # msgStr2 =   str(" Schulden gemacht!")
+            # msgStr3 =   str("Guthaben aufladen!")
+            # #value_str = str("Schulden: " + str('%.2f' % (-1*value))) + " EUR")
+            # lcd.lcd_display_string(msgStr1, 1)
+            # lcd.lcd_display_string(msgStr2, 2)
+            # lcd.lcd_display_string(msgStr2, 3)
+            # lcd.lcd_display_string(value_str, 4)
+            # beep(0.05)
+            # time.sleep(0.1)
+            # beep(0.05)
+            # beep(0.05)
+            # time.sleep(4)
+            lastSeen = ""
+            counter = 0
+            disp_init = 1
+            product_made = False
     uid_str = scanCard() 
     #print("UID: " + uid_str)
+    # if int(time.time() - initial_time) in [20, 21, 22, 23]:
+    #     uid_str = "204093081213"
 
     if uid_str != "0":
+        
+        product_made = False
         lcd.lcd_clear()
 
         if ((uid_str == mastercard1) or (uid_str == mastercard2)):
@@ -367,7 +467,6 @@ while continue_reading:
                 print("Machine locked!")
                 lcd.lcd_display_string("    Admin Lock      ", 2)
                 lcd.lcd_display_string("  -----> :( <-----  ", 3)
-                lcd.lcd_clear()
                 disp_init = 1
             time.sleep(2)
             
@@ -380,16 +479,17 @@ while continue_reading:
                     lastName = get_name(uid_str)
                     preName = get_vorname(uid_str)                
                     welStr = str("Hallo " + preName)
-                    msgStr3 = str("Zum Buchen bitte 3 s")
+                    msgStr3 = str("Zum Buchen bitte 2 s")
                     msgStr4 = str("Chip an Leser halten")
 
                     lcd.lcd_display_string(welStr, 1)
                     lcd.lcd_display_string(value_str, 2)
                     lcd.lcd_display_string(msgStr3, 3)
                     lcd.lcd_display_string(msgStr4, 4)
-                    time.sleep(2)
+                    time.sleep(1)
                     
-                elif lastSeen == uid_str:
+                elif lastSeen == uid_str and product_made == False:
+                    print("Opening coffe machine for choice")
                     lcd.lcd_clear()
 
                     lcd.lcd_display_string("    Wählen Sie      ", 1)
@@ -397,142 +497,180 @@ while continue_reading:
                     lcd.lcd_display_string("  in der Maschine   ", 3)
                     lcd.lcd_display_string("  -----> :) <-----  ", 4)
                     lock_status = lockUnlockMachine(unlock_code, lock_status)
-                    product_made = False
                     initial_time = time.time()
                     chosen = 0
+                    started = 0
+                    # write the all statistics command to statistics_command_handle
+                    child.sendline("char-write-req " + statistics_command_handle + " " + all_statistics)
+                    #print("All statistics sent!")
+                    time.sleep(1)
+                    # read the statistics data from statistics_data_handle
+                    child.sendline("char-read-hnd " + statistics_data_handle)
+                    child.expect(": ")
+                    data = child.readline()
+                    #print(b"Statistics data: " + data)
+                    # decode the statistics data
+                    data = [int(x, 16) for x in data.split()]
+                    decoded = BtEncoder.encDecBytes(data, KEY_DEC)
+                    # join decoded data to a list for every three bytes example: [001200, 000000, 000098]
+                    decoded = ["".join(["%02x" % d for d in decoded[i:i+3]]) for i in range(0, len(decoded), 3)]
+                    # for every hex string in decoded list, convert to int
+                    decoded = [int(x, 16) for x in decoded]
+                    CURRENT_STATISTICS = decoded
                     while product_made == False:
+                        print("Waiting for product to be made")
                         time_total = int(time.time() - initial_time)
-                        if time_total == 120:
-                            print("No product made in 60 seconds, locking machine")
+                        if time_total > 10 and started == 0:
+                            print("No product made in 10 seconds, locking machine")
                             lock_status = lockUnlockMachine(locking_code, lock_status)
                             lcd.lcd_display_string("  Kein Produkt      ", 1)
                             lcd.lcd_display_string("    ausgewählt      ", 2)
                             lcd.lcd_display_string("  Locking Machine   ", 3)
                             lcd.lcd_display_string("  -----> :( <-----  ", 4)
-                            lcd.lcd_clear()
+                            #lcd.lcd_clear()
+                            disp_init = 1
                             chosen = 0
                             lock_status = lockUnlockMachine(locking_code, lock_status)
                             break
                         if int(time.time() - initial_time) % 5 == 0:
                             child.sendline("char-write-req " + heartbeat_handle + " " + keep_alive_code)
-                        # write the all statistics command to statistics_command_handle
-                        child.sendline("char-write-req " + statistics_command_handle + " " + all_statistics)
-                        #print("All statistics sent!")
-                        time.sleep(1.2)
-                        # read the statistics data from statistics_data_handle
-                        child.sendline("char-read-hnd " + statistics_data_handle)
-                        child.expect(": ")
-                        data = child.readline()
-                        #print(b"Statistics data: " + data)
-                        # decode the statistics data
-                        data = [int(x, 16) for x in data.split()]
-                        decoded = BtEncoder.encDecBytes(data, KEY_DEC)
-                        # join decoded data to a list for every three bytes example: [001200, 000000, 000098]
-                        decoded = ["".join(["%02x" % d for d in decoded[i:i+3]]) for i in range(0, len(decoded), 3)]
-                        # for every hex string in decoded list, convert to int
-                        decoded = [int(x, 16) for x in decoded]
-                        # change the values that are different from the previous ones when comparing with CURRENT_STATISTICS
-                        for i in range(len(decoded)):
-                            if decoded[i] != CURRENT_STATISTICS[i]:
-                                if i != 0:
-                                    print("A " + PRODUCTS[i] + " was made!")
-                                    product_made = PRODUCTS[i]
-                                    chosen = 1
-                                    lock_status = lockUnlockMachine(locking_code, lock_status)
-                                else:
-                                    print("Overall products increased by 1")
-                                print("Value changed: " + str(decoded[i]) + " -> " + str(CURRENT_STATISTICS[i]))
-                                CURRENT_STATISTICS[i] = decoded[i]
-                    
-                    if chosen == 1:    
-                        value_new = value - priceCoffee[product_made]
-
-                    if value_new >= 0 and chosen == 1:
-                        
-                        beep(0.05)
-                        time.sleep(0.1)
-                        beep(0.05)
-                        #set_value(uid_str, value_new)
-                        #set_buylist(uid_str, str("General"), 0.5)
-                        msgStr1 = str(" Kaffee abgebucht!")
-                        msgStr2 = str("  Betty dankt :)  ")
-                        value_str = str("Guthaben: " + str('%.2f' % value_new) + " EUR")
-                        lcd.lcd_display_string(msgStr1, 1)
-                        lcd.lcd_display_string(msgStr2, 2)
-                        lcd.lcd_display_string(value_str, 4)
-                        sleepTimer(4)
-                        lcd.lcd_clear()
-                        lastSeen = ""
-                        counter = 0
-                        disp_init = 1
-                    elif value_new < 0 and chosen == 1:
-                        lcd.lcd_clear()
-                        #set_value(uid_str, value_new)
-                        #set_buylist(uid_str, str("General"), 0.5)
-                        msgStr1 =   str(" Kaffee abgebucht!")
-                        msgStr2 =   str(" Schulden gemacht!")
-                        msgStr3 =   str("Guthaben aufladen!")
-                        #value_str = str("Schulden: " + str('%.2f' % (-1*value))) + " EUR")
-                        lcd.lcd_display_string(msgStr1, 1)
-                        lcd.lcd_display_string(msgStr2, 2)
-                        lcd.lcd_display_string(msgStr2, 3)
-                        lcd.lcd_display_string(value_str, 4)
-                        beep(0.05)
-                        time.sleep(0.1)
-                        beep(0.05)
-                        beep(0.5)
-                        time.sleep(4)
-                        lastSeen = ""
-                        counter = 0
-                        disp_init = 1
-                else:
-                    lcd.lcd_clear()
-                    lastName1 = get_name(lastSeen)
-                    PreName1 = get_vorname(lastSeen)
-                    lastName2 = get_name(uid_str)
-                    PreName2 = get_vorname(uid_str)
-                    msgStr1 = str("Andere UID! Erwarte:")
-                    msgStr2 = str(preName1 + " " + lastName1)
-                    msgStr3 = str("Gerade gelesen: ")
-                    msgStr4 = str(preName2 + " " + lastName2)
-                    lcd.lcd_display_string(msgStr1, 1)
-                    lcd.lcd_display_string(msgStr2, 2)
-                    lcd.lcd_display_string(msgStr3, 3)
-                    lcd.lcd_display_string(msgStr4, 4)
-                    beep(0.5)
-                    time.sleep(3)
-                    lastSeen = ""
-                    counter = 0
-                    disp_init = 1
+                        try:
+                            # write the all statistics command to statistics_command_handle
+                            child.sendline("char-write-req " + statistics_command_handle + " " + all_statistics)
+                            #print("All statistics sent!")
+                            #time.sleep(1.5)
+                            # read the data from product progress handle
+                            child.sendline("char-read-hnd " + product_progress_handle)
+                            child.expect(": ")
+                            data = child.readline()
+                            data = [x for x in data.split()]
+                            if data[1] != b"e1" and time_total > 5:
+                                #lock_status = lockUnlockMachine(locking_code, lock_status)
+                                beep(0.5)
+                                print("PRODUCT MADE")
+                                client_to_pay = uid_str
+                                started = 1
+                                lock_status = lockUnlockMachine(locking_code, lock_status)
+                                payment_to_date = 0
+                            else:
+                                print("NO PRODUCT MADE")
+                            #print("Product progress data: " + str(data))
+                            # # read the statistics data from statistics_data_handle
+                            # child.sendline("char-read-hnd " + statistics_data_handle)
+                            # child.expect(": ")
+                            # data = child.readline()
+                            # #print(b"Statistics data: " + data)
+                            # # decode the statistics data
+                            # data = [int(x, 16) for x in data.split()]
+                            # decoded = BtEncoder.encDecBytes(data, KEY_DEC)
+                            # # join decoded data to a list for every three bytes example: [001200, 000000, 000098]
+                            # decoded = ["".join(["%02x" % d for d in decoded[i:i+3]]) for i in range(0, len(decoded), 3)]
+                            # # for every hex string in decoded list, convert to int
+                            # decoded = [int(x, 16) for x in decoded]
+                            # # change the values that are different from the previous ones when comparing with CURRENT_STATISTICS
+                            # if decoded[0] != CURRENT_STATISTICS[0]:
+                            #     #lock_status = lockUnlockMachine(locking_code, lock_status)
+                            #     print("Overall products increased by 1")
+                            #     CURRENT_STATISTICS[0] = decoded[0]
+                                
+                            # for i in range(1, len(decoded)):
+                            #     if decoded[i] != CURRENT_STATISTICS[i]:
+                            #         print("A " + PRODUCTS[i] + " was made!")
+                            #         product_made = PRODUCTS[i]
+                            #         chosen = 1
+                            #         print("Value changed: " + str(decoded[i]) + " -> " + str(CURRENT_STATISTICS[i]))
+                            #         CURRENT_STATISTICS[i] = decoded[i]
+                        except Exception as e:
+                           print("Error: " + str(e))
+                           continue
+                    # if chosen == 0:
+                    #     product_made = False
+                    #     continue
+                    # elif chosen == 1:    
+                    #     print("Setting value for uid: " + uid_str)
+                    #     value_new = value - priceCoffee[product_made]
+                    # if value_new >= 0 and chosen == 1:
+                    #     beep(0.05)
+                    #     time.sleep(0.1)
+                    #     beep(0.05)
+                    #     set_value(uid_str, value_new)
+                    #     #set_buylist(uid_str, str("General"), priceCoffee[product_made])
+                    #     msgStr1 = str(" Kaffee abgebucht!")
+                    #     msgStr2 = str("  Betty dankt :)  ")
+                    #     value_str = str("Guthaben: " + str('%.2f' % value_new) + " EUR")
+                    #     lcd.lcd_display_string(msgStr1, 1)
+                    #     lcd.lcd_display_string(msgStr2, 2)
+                    #     lcd.lcd_display_string(value_str, 4)
+                    #     sleepTimer(4)
+                    #     lcd.lcd_clear()
+                    #     lastSeen = ""
+                    #     counter = 0
+                    #     disp_init = 1
+                    #     product_made = False
+                    # elif value_new < 0 and chosen == 1:
+                    #     lcd.lcd_clear()
+                    #     #set_value(uid_str, value_new)
+                    #     #set_buylist(uid_str, str("General"), 0.5)
+                    #     msgStr1 =   str(" Kaffee abgebucht!")
+                    #     msgStr2 =   str(" Schulden gemacht!")
+                    #     msgStr3 =   str("Guthaben aufladen!")
+                    #     #value_str = str("Schulden: " + str('%.2f' % (-1*value))) + " EUR")
+                    #     lcd.lcd_display_string(msgStr1, 1)
+                    #     lcd.lcd_display_string(msgStr2, 2)
+                    #     lcd.lcd_display_string(msgStr2, 3)
+                    #     lcd.lcd_display_string(value_str, 4)
+                    #     beep(0.05)
+                    #     time.sleep(0.1)
+                    #     beep(0.05)
+                    #     beep(0.05)
+                    #     time.sleep(4)
+                    #     lastSeen = ""
+                    #     counter = 0
+                    #     disp_init = 1
+                    #     product_made = False
+                # else:
+                #     lcd.lcd_clear()
+                #     lastName1 = get_name(lastSeen)
+                #     PreName1 = get_vorname(lastSeen)
+                #     lastName2 = get_name(uid_str)
+                #     PreName2 = get_vorname(uid_str)
+                #     msgStr1 = str("Andere UID! Erwarte:")
+                #     msgStr2 = str(preName1 + " " + lastName1)
+                #     msgStr3 = str("Gerade gelesen: ")
+                #     msgStr4 = str(preName2 + " " + lastName2)
+                #     lcd.lcd_display_string(msgStr1, 1)
+                #     lcd.lcd_display_string(msgStr2, 2)
+                #     lcd.lcd_display_string(msgStr3, 3)
+                #     lcd.lcd_display_string(msgStr4, 4)
+                #     beep(0.5)
+                #     time.sleep(3)
+                #     lastSeen = ""
+                #     counter = 0
+                #     disp_init = 1
             
-            except:
-                #lcd.lcd_display_string("Unbekannte Karte", 2)
-                #lcd.lcd_display_string("UID: " + uid_str, 3)
-                print ("Card read UID: " + uid_str)
-                #beep(1)
-                time.sleep(1)
-                #lcd.lcd_clear()
+            except Exception as e:
+                print("The error raised is: ", e)
     
-    else:
-        if lastSeen != "":
-            counter = counter + 1
-            print(counter)
-        if counter >= 10:
-            lcd.lcd_clear()
-            lastSeen = ""
-            counter = 0
-            beep(0.2)
-            time.sleep(0.1)
-            beep(0.2)
+    # else:
+    #     if lastSeen != "":
+    #         counter = counter + 1
+    #         print(counter)
+    #     if counter >= 10:
+    #         lcd.lcd_clear()
+    #         lastSeen = ""
+    #         counter = 0
+    #         beep(0.2)
+    #         time.sleep(0.1)
+    #         beep(0.2)
 
-            msgStr1 = str("Chip entfernt?")
-            msgStr3 = str("Kaffe konnte nicht")
-            msgStr4 = str("gebucht werden! :(")
-            lcd.lcd_display_string(msgStr1, 1)
-            lcd.lcd_display_string(msgStr3, 3)
-            lcd.lcd_display_string(msgStr4, 4)
-            sleepTimer(4)
-            disp_init = 1
+    #         msgStr1 = str("Chip entfernt?")
+    #         msgStr3 = str("Kaffe konnte nicht")
+    #         msgStr4 = str("gebucht werden! :(")
+    #         lcd.lcd_display_string(msgStr1, 1)
+    #         lcd.lcd_display_string(msgStr3, 3)
+    #         lcd.lcd_display_string(msgStr4, 4)
+    #         sleepTimer(4)
+    #         disp_init = 1
         sleepTimer(0.1)                
 
     
