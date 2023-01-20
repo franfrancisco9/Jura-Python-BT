@@ -1,3 +1,21 @@
+import pexpect
+import time
+from bitarray import bitarray
+from bt_encoder import BtEncoder
+from jura_encoder import JuraEncoder
+from setup import setup
+import os 
+from dotenv import load_dotenv
+from connection import *
+import pymysql  
+pymysql.install_as_MySQLdb()
+import MySQLdb as mdb
+import RPi.GPIO as GPIO
+import lcddriver
+import MFRC522
+import signal
+import time
+import serial
 
 def setupBuzzer(pin):
 	global BuzzerPin
