@@ -97,7 +97,7 @@ class MFRC522:
   Reserved21        = 0x23
   ModWidthReg       = 0x24
   Reserved22        = 0x25
-  RFCfgReg          = 0x26
+  RFCfgReg          = 0x30
   GsNReg            = 0x27
   CWGsPReg          = 0x28
   ModGsPReg         = 0x29

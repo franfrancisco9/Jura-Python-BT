@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import pexpect
 import time
 from bitarray import bitarray
@@ -18,6 +20,9 @@ import time
 import serial
 import sys
 
+# Define pin for buzzer
+BUZZER = 7
+
 def setupBuzzer(pin):
 	global BuzzerPin
 	BuzzerPin = pin
@@ -26,14 +31,14 @@ def setupBuzzer(pin):
 	GPIO.output(BuzzerPin, GPIO.LOW)
 	
 def beep(duration):
+    # Init buzzer
+	setupBuzzer(BUZZER)
 	GPIO.output(BuzzerPin, GPIO.HIGH)
 	time.sleep(duration)
 	GPIO.output(BuzzerPin, GPIO.LOW)
 
-# Define pin for buzzer
-BUZZER = 7
-# Init buzzer
-setupBuzzer(BUZZER)
+
+
 beep(0.5)
 
 load_dotenv()
@@ -55,6 +60,8 @@ db = mdb.connect(host = "127.0.0.1", user = "root", passwd = os.getenv("PASSWD")
 # Initialize LCD
 lcd = lcddriver.lcd()
 lcd.lcd_clear()
+
+
 
 priceCoffee = {
     "Ristretto":0.45,
@@ -87,7 +94,7 @@ in_machine_products  = {
     1:"Ristretto",
     2:"Espresso",
     3:"Coffee",
-    8:"Cappuccino",
+    4:"Cappuccino",
     5:"Milkcoffee",
     6:"Espresso Macchiato",
     7:"Latte Macchiato",
@@ -197,18 +204,20 @@ def readlineCR(port):
 			return rv
 
 def scanCard():
+    # Create an object of the class MFRC522
+	RFIDREADER = MFRC522.MFRC522()
 	# Scan for cards    
-	(status,TagType) = MIFAREReader.MFRC522_Request(MIFAREReader.PICC_REQIDL)
+	(status,TagType) = RFIDREADER.MFRC522_Request(RFIDREADER.PICC_REQIDL)
 
     # If a card is found
-	if status == MIFAREReader.MI_OK:
+	if status == RFIDREADER.MI_OK:
 		print("Card detected")
     
     # Get the UID of the card
-	(status,uid) = MIFAREReader.MFRC522_Anticoll()
+	(status,uid) = RFIDREADER.MFRC522_Anticoll()
 
     # If we have the UID, continue
-	if status == MIFAREReader.MI_OK:
+	if status == RFIDREADER.MI_OK:
 		# Change UID to string
 		uid_str =  str(uid[0]).zfill(3) + str(uid[1]).zfill(3) + str(uid[2]).zfill(3) + str(uid[3]).zfill(3)	
 		return uid_str
@@ -308,6 +317,8 @@ def end_read(signal,frame):
 	db.close()
 	continue_reading = False
 	GPIO.cleanup()
+	os.system("sudo ./backupMySQLdb.sh")
+	print("Bakcup done!")
 	_ = lockUnlockMachine(unlock_code, "locked")
 
 def read_statistics():
@@ -364,8 +375,6 @@ else:
 # Hook the SIGINT
 signal.signal(signal.SIGINT, end_read)
 
-# Create an object of the class MFRC522
-MIFAREReader = MFRC522.MFRC522()
 
 # Init buzzer
 setupBuzzer(BUZZER)
@@ -377,7 +386,8 @@ while True:
         print("Serial connection initialized")
         break
     except:
-        print("Serial connection failed")
+        print("Serial connection failed, ending program")
+        end_read(0,0)
 
 lcd.lcd_display_string("   Machine Locked   ", 1)
 lcd.lcd_display_string("      ~~~~~~~~      ", 2)
@@ -403,6 +413,7 @@ client_to_pay = []
 admin_locked = 0
 while continue_reading:
     current_time = int(time.time() - initial_time)
+    #print("Current time: " + str(current_time))
     # get hour of the day
     hour = int(time.strftime("%H"))
     # print ("Hour: " + str(hour))
@@ -410,10 +421,19 @@ while continue_reading:
         # reboot pi
         print("Rebooting pi")
         lcd.lcd_clear()
+        os.system("sudo ./backupMySQLdb.sh")
         os.system("sudo reboot")
     # if time elapsed is a multiple of 15 seconds then send keep alive code
     if current_time % 5 == 0:
+        #print("Sending keep alive code")
         child.sendline("char-write-req " + heartbeat_handle + " " + keep_alive_code)
+        data = child.readline()
+        #print(b"Keep alive: " + data)
+        if b'Disconnected' in data:
+            # run setup
+            print("Disconnected")
+            child, keep_alive_code, locking_code, unlock_code, KEY_DEC, all_statistics, initial_time, CURRENT_STATISTICS = setup(DEVICE, characteristics)
+                        
 
     if disp_init == 1:
         lcd.lcd_clear()
@@ -425,6 +445,7 @@ while continue_reading:
         time.sleep(0.5)
         
     uid_str = scanCard() 
+    GPIO.cleanup()
 
     if uid_str != "0":
         print("last seen: ", lastSeen)
@@ -484,7 +505,7 @@ while continue_reading:
                     started = 0
                     over = 0
                     while over == 0:
-                        print("Waiting for product to be made")
+                        #print("Waiting for product to be made")
                         time_total = int(time.time() - intial_time_2)
                         if time_total > 25 and started == 0:
                             #print("No product made in 25 seconds, locking machine")
@@ -511,8 +532,9 @@ while continue_reading:
                             data = [x for x in data.split()]
                             decoded = BtEncoder.encDecBytes(data2, KEY_DEC)
                             as_hex = ["%02x" % d for d in decoded]
+                            #print("Decoded: ", as_hex)
                             #print("\nDecoded data as HEX: " + " ".join(["%02x" % d for d in decoded]))
-                            if data[1] not in [b"e1", b"ac"] and time_total > 5 and started == 0:
+                            if as_hex[1] not in ["3e", "00"] and time_total > 5 and started == 0:
                                 #lock_status = lockUnlockMachine(locking_code, lock_status)
                                 beep(0.5)
                                 print("PRODUCT MADE")
@@ -524,7 +546,7 @@ while continue_reading:
                                 lcd.lcd_display_string("    Will charge     ", 2)
                                 lcd.lcd_display_string(" " + preName + " ", 3)
                                 lcd.lcd_display_string("  -----> :) <-----  ", 4)
-                                
+                                time.sleep(1.5)
                                 print("Product made was: ", product_made)
                                 started = 1
                                 disp_init = 1
@@ -545,6 +567,7 @@ while continue_reading:
                                     preName = get_vorname(client_to_pay[0]) 
                                     #beep(1)
                                     # set_buylist(uid_str, str("General"), priceCoffee[product_made])
+                                    lcd.lcd_clear()
                                     msgStr1 = str(product_made + " was made!")
                                     msgStr2 = str("  Happy betty :)  ")
                                     msgStr3 = str(" " + preName + " ")
@@ -559,6 +582,7 @@ while continue_reading:
                                     disp_init = 1
                                     product_made = False
                                 elif value_new < 0 and chosen == 1:
+                                    print("PAYING")
                                     lcd.lcd_clear()
                                     set_value(client_to_pay[0], value_new)
                                     payment_to_date = 1
@@ -583,7 +607,7 @@ while continue_reading:
                                     disp_init = 1
                                     product_made = False
                                 lastSeen = ""
-                            elif started == 1 and data[1] in [b"e1", b"ac"]:
+                            elif started == 1 and as_hex[1] in ["3e", "00"]:
                                 over = 1
                                 lcd.lcd_clear()
                                 preName = get_vorname(uid_str) 
@@ -596,19 +620,27 @@ while continue_reading:
                                 continue
 
                         except Exception as e:
-                           print("Error: " + str(e))
-                           if b'Disconnected' in e:
-                                 # run setup
-                                print("Disconnected")
-                                child, keep_alive_code, locking_code, unlock_code, KEY_DEC, all_statistics, initial_time, CURRENT_STATISTICS = setup(DEVICE, characteristics)
-                           continue
+                            print("Error: " + str(e))
+                            try:
+                                if e == b'\x1b[0mDisconnected':
+                                    # run setup
+                                    print("Disconnected")
+                                    child, keep_alive_code, locking_code, unlock_code, KEY_DEC, all_statistics, initial_time, CURRENT_STATISTICS = setup(DEVICE, characteristics)
+                                    lock_status = lockUnlockMachine(locking_code, lock_status)
+                            except:
+                                pass
+                            continue
             except Exception as e:
                 print("The error raised is: ", e)
-                if b'Disconnected' in e:
-                    # run setup
-                    print("Disconnected")
-                    child, keep_alive_code, locking_code, unlock_code, KEY_DEC, all_statistics, initial_time, CURRENT_STATISTICS = setup(DEVICE, characteristics)
-    
+                try:
+                    if e == b'\x1b[0mDisconnected':
+                        # run setup
+                        print("Disconnected")
+                        child, keep_alive_code, locking_code, unlock_code, KEY_DEC, all_statistics, initial_time, CURRENT_STATISTICS = setup(DEVICE, characteristics)
+                        lock_status = lockUnlockMachine(locking_code, lock_status)
+                except:
+                    pass
+                continue
     else:
         if lastSeen != "":
             counter = counter + 1
@@ -629,4 +661,5 @@ while continue_reading:
             lcd.lcd_display_string(msgStr4, 4)
             sleepTimer(4)
             disp_init = 1
+            lock_status = lockUnlockMachine(locking_code, lock_status)
         sleepTimer(0.1)                
