@@ -402,9 +402,11 @@ class MFRC522:
         i = i+1
 
   def MFRC522_Init(self):
+    GPIO.setmode(GPIO.BOARD)
+    GPIO.setup(self.NRSTPD, GPIO.OUT)
     GPIO.output(self.NRSTPD, 1)
 
-    self.MFRC522_Reset();
+    self.MFRC522_Reset()
 
 
     self.Write_MFRC522(self.TModeReg, 0x8D)
