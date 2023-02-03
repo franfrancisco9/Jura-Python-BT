@@ -2,6 +2,15 @@ import pexpect
 import time
 from bt_encoder import BtEncoder
 from jura_encoder import JuraEncoder
+import logging
+
+logging.basicConfig(
+    filename='blue.log',
+    level=logging.DEBUG,
+    format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+)
+
 BtEncoder = BtEncoder()
 JuraEncoder = JuraEncoder()
 def setup(DEVICE, characteristics):
@@ -26,7 +35,7 @@ def setup(DEVICE, characteristics):
             # print the time the connection was made
             initial_time = time.time()
             print("Initial time: " + str(initial_time))
-            time.sleep(5)
+            #time.sleep(5)
             # get current key
             child.sendline("char-read-hnd " + characteristics["machine_status"][1])
             child.expect(": ", timeout=5)
@@ -54,23 +63,26 @@ def setup(DEVICE, characteristics):
             print("Locking code: " + locking_code)
             print("Unlock code: " + unlock_code)
             print("All statistics: " + all_statistics)
-            child.sendline("char-write-req " + characteristics["statistics_command"][1] + " " + all_statistics)
-            time.sleep(1)
-            child.sendline("char-read-hnd " + characteristics["statistics_data"][1])
-            child.expect(": ")
-            data = child.readline()
-            #print(b"Statistics data: " + data)
-            # decode the statistics data
-            data = [int(x, 16) for x in data.split()]
-            decoded = BtEncoder.encDecBytes(data, KEY_DEC)
-            # join decoded data to a list for every three bytes example: [001200, 000000, 000098]
-            decoded = ["".join(["%02x" % d for d in decoded[i:i+3]]) for i in range(0, len(decoded), 3)]
-            # for every hex string in decoded list, convert to int
-            decoded = [int(x, 16) for x in decoded]
-            CURRENT_STATISTICS = decoded
-            print("Current Statistics: " + str(decoded))
+            # child.sendline("char-write-cmd " + characteristics["statistics_command"][1] + " " + all_statistics)
+            # time.sleep(1)
+            # child.sendline("char-read-hnd " + characteristics["statistics_data"][1])
+            # child.expect(": ")
+            # data = child.readline()
+            # #print(b"Statistics data: " + data)
+            # # decode the statistics data
+            # data = [int(x, 16) for x in data.split()]
+            # decoded = BtEncoder.encDecBytes(data, KEY_DEC)
+            # # join decoded data to a list for every three bytes example: [001200, 000000, 000098]
+            # decoded = ["".join(["%02x" % d for d in decoded[i:i+3]]) for i in range(0, len(decoded), 3)]
+            # # for every hex string in decoded list, convert to int
+            # decoded = [int(x, 16) for x in decoded]
+            # CURRENT_STATISTICS = decoded
+            # print("Current Statistics: " + str(decoded))
+            CURRENT_STATISTICS = [0, 0, 0]
+            child.close()
             break
         except:
             print("Failed to connect to device. Retrying...")
+            logging.debug("Failed to connect to device at " + str(time.time()) + " Retrying...")
             continue
-    return child, keep_alive_code, locking_code, unlock_code, KEY_DEC, all_statistics, initial_time, CURRENT_STATISTICS
+    return keep_alive_code, locking_code, unlock_code, KEY_DEC, all_statistics, initial_time, CURRENT_STATISTICS
