@@ -102,7 +102,13 @@ def set_value(UID, value):
 
 # Function to get price of selected product
 def get_price(product):
-	price = priceCoffee[product]
+	price = float()
+	c = db.cursor()
+	db.commit()
+	c.execute("SELECT SQL_NO_CACHE * FROM Produktliste WHERE Produkt = " + product + " ")
+	for row in c.fetchall():
+		price = row[2]
+	c.close
 	return price
 
 # Function to set insert new row into Kaufliste
