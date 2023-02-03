@@ -503,7 +503,7 @@ while continue_reading:
     #     print("Connected!")
     #     #child, keep_alive_code, locking_code, unlock_code, KEY_DEC, all_statistics, initial_time, CURRENT_STATISTICS = setup(DEVICE, characteristics)
     #     #lock_status = lockUnlockMachine(locking_code, lock_status)
-    if (hour == 1 or hour == 7) and minute == 0 :
+    if (hour == 1 or hour == 5) and minute == 30 :
         # reboot pi
         print("Rebooting pi")
         lcd.lcd_clear()
@@ -547,8 +547,7 @@ while continue_reading:
         
     uid_str = scanCard() 
     GPIO.cleanup()
-#    if current_time in [20, 21, 22]:
- #       uid_str = "204093081213"
+
     if admin_locked == 1 and current_time % 10 == 0:
         prod = read_statistics()
         if prod != False:
@@ -592,18 +591,34 @@ while continue_reading:
                 if lastSeen == "":
                     lastSeen = uid_str
                     value = get_value(uid_str)
-                    value_str = str("Balance: " + str('%.2f' % value) + " EUR")
-                    lastName = get_name(uid_str)
-                    preName = get_vorname(uid_str)                
-                    welStr = str("Hello " + preName)
-                    msgStr3 = str("Hold for 2s please  ")
-                    msgStr4 = str("Chip below          ")
+                    if value < 0:
+                         # alert user in lcd that they need to charge balance
+                        lcd.lcd_clear()
+                        lcd.lcd_display_string("  Your balance is   ", 1)
+                        lcd.lcd_display_string("       < 0!         ", 2)
+                        lcd.lcd_display_string("  Please charge it  ", 3)
+                        lcd.lcd_display_string("  Locking Machine   ", 4)
+                        time.sleep(2)
+                        lock_status = lockUnlockMachine(locking_code, lock_status)
+                        print("User balance is < 0")
+                        lastSeen = ""
+                        client_to_pay = ""
+                        disp_init = 1
 
-                    lcd.lcd_display_string(welStr, 1)
-                    lcd.lcd_display_string(value_str, 2)
-                    lcd.lcd_display_string(msgStr3, 3)
-                    lcd.lcd_display_string(msgStr4, 4)
-                    time.sleep(1.5)
+
+                    else:
+                        value_str = str("Balance: " + str('%.2f' % value) + " EUR")
+                        lastName = get_name(uid_str)
+                        preName = get_vorname(uid_str)                
+                        welStr = str("Hello " + preName)
+                        msgStr3 = str("Hold for 2s please  ")
+                        msgStr4 = str("Chip below          ")
+
+                        lcd.lcd_display_string(welStr, 1)
+                        lcd.lcd_display_string(value_str, 2)
+                        lcd.lcd_display_string(msgStr3, 3)
+                        lcd.lcd_display_string(msgStr4, 4)
+                        time.sleep(1.5)
                     
                 elif lastSeen == uid_str and product_made == False:
                     beep(0.05)
