@@ -14,6 +14,7 @@ logging.basicConfig(
 BtEncoder = BtEncoder()
 JuraEncoder = JuraEncoder()
 def setup(DEVICE, characteristics):
+    current_time = time.time()
     # send command gatttool -b ED:95:43:60:13:92 -I -t random to system with no output using pexpect
     # then send command connect to gatttool 
     # then send command char-write-cmd 0x0011 0e f7 2a to gatttool
@@ -23,6 +24,10 @@ def setup(DEVICE, characteristics):
     # char-write-req 0x0011 0e f7 2a
     while True:
         try:
+            time.sleep(2)
+            if time.time() - current_time > 20:
+                logging.debug("Exiting...")
+                break
             print("Run gatttool...")
             child = pexpect.spawn("gatttool -b " + DEVICE + " -I -t random")
             # Connect to the device.

@@ -598,8 +598,13 @@ while continue_reading:
                         lcd.lcd_display_string("       < 0!         ", 2)
                         lcd.lcd_display_string("  Please charge it  ", 3)
                         lcd.lcd_display_string("  Locking Machine   ", 4)
+                        beep(0.3)
+                        time.sleep(0.5)
+                        beep(0.3)
+                        time.sleep(0.5)
+                        beep(0.3)
                         time.sleep(2)
-                        lock_status = lockUnlockMachine(locking_code, lock_status)
+                        lock_status = lockUnlockMachine(locking_code, lock_status)                        
                         print("User balance is < 0")
                         lastSeen = ""
                         client_to_pay = ""
