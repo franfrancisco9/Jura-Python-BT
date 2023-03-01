@@ -42,7 +42,7 @@ def beep(duration):
     # Init buzzer
 	setupBuzzer(BuzzerPin)
 	GPIO.output(BuzzerPin, GPIO.HIGH)
-	time.sleep(duration)
+	time.sleep(duration+0.5)
 	GPIO.output(BuzzerPin, GPIO.LOW)
 
 
@@ -68,6 +68,16 @@ db = mdb.connect(host = "127.0.0.1", user = "root", passwd = os.getenv("PASSWD")
 # Initialize LCD
 lcd = lcddriver.lcd()
 lcd.lcd_clear()
+
+# Function to go to Benutzerverwaltung table and retrieve UID from id = 1000
+def getUID_stats():
+    value = str()
+    c = db.cursor()
+    db.commit()
+    c.execute("SELECT SQL_NO_CACHE * FROM Benutzerverwaltung WHERE id = 1000 ")
+    value = c.fetchone()[1]
+    c.close
+    return value  
 
 # Function to get price of selected product
 def get_price(product):
@@ -323,40 +333,47 @@ characteristics = {
 }
 
 
-keep_alive_code, locking_code, unlock_code, KEY_DEC, all_statistics, initial_time, CURRENT_STATISTICS = setup(DEVICE, characteristics)
+child, keep_alive_code, locking_code, unlock_code, KEY_DEC, all_statistics, initial_time, CURRENT_STATISTICS = setup(DEVICE, characteristics)
+print(getUID_stats())
+if int(getUID_stats()) < CURRENT_STATISTICS[0]:
+    # change the UID in the database Benutzerverwaltung to CURRENT_STATISTICS[0] where id = 1000
+    print("updating the value in the table")
+    c = db.cursor()
+    c.execute("UPDATE Benutzerverwaltung SET UID = " + str(CURRENT_STATISTICS[0]) + " WHERE id = 1000;")	
+    db.commit()
+    c.close()
 
-child = pexpect.spawn("gatttool -b " + DEVICE + " -I -t random")
-# Connect to the device.
-print("Connecting to ")
-print(DEVICE)
-child.sendline("connect")
-print(child.child_fd)
-#try:
-child.expect("Connection successful", timeout=5)
-print("Connected!")
-logging.info("Connected")
+# child = pexpect.spawn("gatttool -b " + DEVICE + " -I -t random")
+# # Connect to the device.
+# print("Connecting to ")
+# print(DEVICE)
+# child.sendline("connect")
+# print(child.child_fd)
+# #try:
+# child.expect("Connection successful", timeout=5)
+# print("Connected!")
+# logging.info("Connected")
 
-child.sendline("char-write-cmd " + characteristics["statistics_command"][1] + " " + all_statistics)
-time.sleep(1)
-child.sendline("char-read-hnd " + characteristics["statistics_data"][1])
-child.expect(": ")
-data = child.readline()
-#print(b"Statistics data: " + data)
-# decode the statistics data
-data = [int(x, 16) for x in data.split()]
-decoded = BtEncoder.encDecBytes(data, KEY_DEC)
-# join decoded data to a list for every three bytes example: [001200, 000000, 000098]
-decoded = ["".join(["%02x" % d for d in decoded[i:i+3]]) for i in range(0, len(decoded), 3)]
-# for every hex string in decoded list, convert to int
-decoded = [int(x, 16) for x in decoded]
-CURRENT_STATISTICS = decoded
-print("Statistics data: ", CURRENT_STATISTICS)
+# child.sendline("char-write-cmd " + characteristics["statistics_command"][1] + " " + all_statistics)
+# time.sleep(1)
+# child.sendline("char-read-hnd " + characteristics["statistics_data"][1])
+# child.expect(": ")
+# data = child.readline()
+# #print(b"Statistics data: " + data)
+# # decode the statistics data
+# data = [int(x, 16) for x in data.split()]
+# decoded = BtEncoder.encDecBytes(data, KEY_DEC)
+# # join decoded data to a list for every three bytes example: [001200, 000000, 000098]
+# decoded = ["".join(["%02x" % d for d in decoded[i:i+3]]) for i in range(0, len(decoded), 3)]
+# # for every hex string in decoded list, convert to int
+# decoded = [int(x, 16) for x in decoded]
+# CURRENT_STATISTICS = decoded
+# print("Statistics data: ", CURRENT_STATISTICS)
 # Capture SIGINT for cleanup when the script is aborted
 def end_read(signal,frame):
 	global continue_reading
 	beep(2)
 	print("Ctrl+C captured, ending read.")
-	inkasso = 0
 	lcd.lcd_display_string("  Program over      ", 1)
 	lcd.lcd_display_string("      ~~~~~~~~      ", 2)
 	lcd.lcd_display_string("     Unlocking      ", 3)
@@ -367,13 +384,35 @@ def end_read(signal,frame):
 	lcd.lcd_display_string("      ~~~~~~~~      ", 2)
 	lcd.lcd_display_string("     Running        ", 3)
 	lcd.lcd_display_string("  -----> :( <-----  ", 4)  
-	db.close()
 	continue_reading = False
 	GPIO.cleanup()
 	os.system("sudo ./backupMySQLdb.sh")
 	print("Bakcup done!")
 	logging.info("Backup done")
 	logging.info("Program ended")
+	child.sendline("char-write-req " + characteristics["statistics_command"][1] + " " + all_statistics)
+	time.sleep(1.5)
+	child.sendline("char-read-hnd " + characteristics["statistics_data"][1])
+	child.expect(": ")
+	data = child.readline()
+	#print(b"Statistics data: " + data)
+	# decode the statistics data
+	data = [int(x, 16) for x in data.split()]
+	decoded = BtEncoder.encDecBytes(data, KEY_DEC)
+	# join decoded data to a list for every three bytes example: [001200, 000000, 000098]
+	decoded = ["".join(["%02x" % d for d in decoded[i:i+3]]) for i in range(0, len(decoded), 3)]
+	# for every hex string in decoded list, convert to int
+	decoded = [int(x, 16) for x in decoded]
+	CURRENT_STATISTICS = decoded
+	print("Current Statistics: " + str(decoded))
+	if int(getUID_stats()) < CURRENT_STATISTICS[0]:
+		# change the UID in the database Benutzerverwaltung to CURRENT_STATISTICS[0] where id = 1000
+		print("updating the value in the table from", getUID_stats(), "to", CURRENT_STATISTICS[0])
+		c = db.cursor()
+		c.execute("UPDATE Benutzerverwaltung SET UID = " + str(CURRENT_STATISTICS[0]) + " WHERE id = 1000;")	
+		db.commit()
+		c.close()
+	db.close()
 	_ = lockUnlockMachine(unlock_code, "locked")
 	exit(0)
 
@@ -381,9 +420,9 @@ def read_statistics():
     try:
         product_made = False
         # write the all statistics command to statistics_command_handle
-        child.sendline("char-write-req " + statistics_command_handle + " " + all_statistics)
+        child.sendline("char-write-cmd " + statistics_command_handle + " " + all_statistics)
         #print("All statistics sent!")
-        time.sleep(1.2)
+        time.sleep(1.5)
         # read the data from product progress handle
         # read the statistics data from statistics_data_handle
         child.sendline("char-read-hnd " + statistics_data_handle)
@@ -410,10 +449,17 @@ def read_statistics():
                 product_made = PRODUCTS[i]
                 print("Value changed to " + str(decoded[i]) + " from " + str(CURRENT_STATISTICS[i]))
                 CURRENT_STATISTICS[i] = decoded[i]
+        if int(getUID_stats()) < CURRENT_STATISTICS[0]:
+            # change the UID in the database Benutzerverwaltung to CURRENT_STATISTICS[0] where id = 1000
+            print("updating the value in the table from", getUID_stats(), "to", CURRENT_STATISTICS[0])
+            c = db.cursor()
+            c.execute("UPDATE Benutzerverwaltung SET UID = " + str(CURRENT_STATISTICS[0]) + " WHERE id = 1000;")	
+            db.commit()
+            c.close()
         return product_made     
-    except:
+    except Exception as e:
          print("Error reading statistics!")
-         logging.error("Error reading statistics!")
+         logging.error("Error reading statistics " + str(e))
          return False
 
 # if no arguments assume that emegeny unlock is 0
@@ -476,6 +522,7 @@ total_prod = 0
 payed_prod = 0
 #number = 0 
 
+time.sleep(1)
 while continue_reading:
     #time.sleep(0.2)
     current_time = int(time.time() - initial_time)
@@ -505,12 +552,45 @@ while continue_reading:
     #     #lock_status = lockUnlockMachine(locking_code, lock_status)
     if (hour == 1 or hour == 5) and minute == 30 :
         # reboot pi
+        child.sendline("char-write-req " + characteristics["statistics_command"][1] + " " + all_statistics)
+        time.sleep(1.5)
+        child.sendline("char-read-hnd " + characteristics["statistics_data"][1])
+        child.expect(": ")
+        data = child.readline()
+        #print(b"Statistics data: " + data)
+        # decode the statistics data
+        data = [int(x, 16) for x in data.split()]
+        decoded = BtEncoder.encDecBytes(data, KEY_DEC)
+        # join decoded data to a list for every three bytes example: [001200, 000000, 000098]
+        decoded = ["".join(["%02x" % d for d in decoded[i:i+3]]) for i in range(0, len(decoded), 3)]
+        # for every hex string in decoded list, convert to int
+        decoded = [int(x, 16) for x in decoded]
+        CURRENT_STATISTICS = decoded
+        print("Current Statistics: " + str(decoded))
+        if int(getUID_stats()) < CURRENT_STATISTICS[0]:
+            # change the UID in the database Benutzerverwaltung to CURRENT_STATISTICS[0] where id = 1000
+            print("updating the value in the table")
+            c = db.cursor()
+            c.execute("UPDATE Benutzerverwaltung SET UID = " + str(CURRENT_STATISTICS[0]) + " WHERE id = 1000;")
+            db.commit()
+            c.close()
         print("Rebooting pi")
         lcd.lcd_clear()
         os.system("sudo ./backupMySQLdb.sh")
         os.system("sudo reboot")
         logging.info("Rebooting pi")
-        
+
+    # if current_time % 20 == 0:
+    #     _ = read_statistics()
+    #     print(CURRENT_STATISTICS)
+    #     if int(getUID_stats()) < CURRENT_STATISTICS[0]:
+    #         # change the UID in the database Benutzerverwaltung to CURRENT_STATISTICS[0] where id = 1000
+    #         print("updating the value in the table from", getUID_stats(), "to", CURRENT_STATISTICS[0])
+    #         c = db.cursor()
+    #         c.execute("UPDATE Benutzerverwaltung SET UID = " + str(CURRENT_STATISTICS[0]) + " WHERE id = 1000;")	
+    #         db.commit()
+    #         c.close()  
+
     # if time elapsed is a multiple of 15 seconds then send keep alive code
     if current_time % 5 == 0:
         #print("Sending keep alive code")
@@ -519,22 +599,54 @@ while continue_reading:
         #print(child.pid)
         data = child.readline()
         data += child.readline()
-        print(b"Keep alive: " + data)
+        #print(b"Keep alive: " + data)
         # match substring Disconnected in data
+        # reboot pi
+        # child.sendline("char-write-cmd " + characteristics["statistics_command"][1] + " " + all_statistics)
+        # time.sleep(1.2)
+        # child.sendline("char-read-hnd " + characteristics["statistics_data"][1])
+        # child.expect(": ")
+        # data = child.readline()
+        # #print(b"Statistics data: " + data)
+        # # decode the statistics data
+        # data = [int(x, 16) for x in data.split()]
+        # decoded = BtEncoder.encDecBytes(data, KEY_DEC)
+        # # join decoded data to a list for every three bytes example: [001200, 000000, 000098]
+        # decoded = ["".join(["%02x" % d for d in decoded[i:i+3]]) for i in range(0, len(decoded), 3)]
+        # # for every hex string in decoded list, convert to int
+        # decoded = [int(x, 16) for x in decoded]
+        # CURRENT_STATISTICS = decoded
+        # print("Current Statistics: " + str(decoded))
+        # if int(getUID_stats()) < CURRENT_STATISTICS[0]:
+        #     # change the UID in the database Benutzerverwaltung to CURRENT_STATISTICS[0] where id = 1000
+        #     print("updating the value in the table")
+        #     c = db.cursor()
+        #     c.execute("UPDATE Benutzerverwaltung SET UID = " + str(CURRENT_STATISTICS[0]) + " WHERE id = 1000;")
+        #     db.commit()
+        #     c.close()
         if "Disconnected" in str(data):
             # run setup
             print("Disconnected here")
+            logging.debug("Disconnected here")
             child.close()
-            child = pexpect.spawn("gatttool -b " + DEVICE + " -I -t random")
-            # Connect to the device.
-            print("Connecting to ")
-            print(DEVICE)
-            child.sendline("connect")
-            print(child.child_fd)
-            #try:
-            child.expect("Connection successful", timeout=5)
-            print("Connected!")       
-            lock_status = lockUnlockMachine(locking_code, lock_status)
+            while True:
+                try:
+                    child = pexpect.spawn("gatttool -b " + DEVICE + " -I -t random")
+                    # Connect to the device.
+                    print("Connecting to ")
+                    print(DEVICE)
+                    child.sendline("connect")
+                    #print(child.child_fd)
+                    #try:
+                    child.expect("Connection successful", timeout=5)
+                    print("Connected!")
+                    logging.info("Connected")
+                    lock_status = "unlocked"
+                    lock_status = lockUnlockMachine(locking_code, lock_status)
+                    print("Machine locked!")
+                    break
+                except:
+                    continue
 
     if disp_init == 1:
         lcd.lcd_clear()
@@ -553,7 +665,7 @@ while continue_reading:
         if prod != False:
             admin_prod += 1
             total_prod += 1
-            set_buylist("0", prod)
+            set_buylist("01", prod)
             print("Admin made a product that was not payed for")
 
     if uid_str != "0":
@@ -654,12 +766,15 @@ while continue_reading:
                             disp_init = 1
                             chosen = 0
                             break
-                        if int(time.time() - intial_time_2) % 5 == 0:
+                        if int(time.time() - intial_time_2) % 2 == 0:
                             child.sendline("char-write-req " + heartbeat_handle + " " + keep_alive_code)
                         try:
                             # read the data from product progress handle
                             child.sendline("char-read-hnd " + product_progress_handle)
-                            child.expect(": ")
+                            try: 
+                                 child.expect(": ")
+                            except:
+                                 pass
                             data = child.readline()
                             data2 = [int(x, 16) for x in data.split()]
                             #print("Encoded: ", data)
@@ -760,20 +875,28 @@ while continue_reading:
                             print("Error: " + str(e))
                             logging.error("Error: " + str(e))
                             try:
-                                if e == b'\x1b[0mDisconnected':
-                                    # run setup
-                                    print("Disconnected")
-                                    child.close()
-                                    child = pexpect.spawn("gatttool -b " + DEVICE + " -I -t random")
-                                    # Connect to the device.
-                                    print("Connecting to ")
-                                    print(DEVICE)
-                                    child.sendline("connect")
-                                    print(child.child_fd)
-                                    #try:
-                                    child.expect("Connection successful", timeout=5)
-                                    print("Connected!")
-                                    lock_status = lockUnlockMachine(locking_code, lock_status)
+                                #if  str(b'\x1b[0mDisconnected') in str(e):
+                                # run setup
+                                logging.debug("Disconnected")
+                                child.close()
+                                while True:
+                                    try:
+                                        child = pexpect.spawn("gatttool -b " + DEVICE + " -I -t random")
+                                        # Connect to the device.
+                                        print("Connecting to ")
+                                        print(DEVICE)
+                                        child.sendline("connect")
+                                        #print(child.child_fd)
+                                        #try:
+                                        child.expect("Connection successful", timeout=5)
+                                        print("Connected!")
+                                        logging.info("Connected")
+                                        lock_status = "unlocked"
+                                        lock_status = lockUnlockMachine(locking_code, lock_status)
+                                        print("Machine locked!")
+                                        break
+                                    except:
+                                        continue
                             except:
                                 pass
                             continue
@@ -781,20 +904,27 @@ while continue_reading:
                 print("The error raised is: ", e)
                 logging.error("The error raised is: " + str(e))
                 try:
-                    if e == b'\x1b[0mDisconnected':
-                        # run setup
-                        print("Disconnected")
-                        child.close()
-                        child = pexpect.spawn("gatttool -b " + DEVICE + " -I -t random")
-                        # Connect to the device.
-                        print("Connecting to ")
-                        print(DEVICE)
-                        child.sendline("connect")
-                        print(child.child_fd)
-                        #try:
-                        child.expect("Connection successful", timeout=5)
-                        print("Connected!")
-                        lock_status = lockUnlockMachine(locking_code, lock_status)
+                    #if str(b'\x1b[0mDisconnected') in str(e):
+                    logging.debug("Disconnected")
+                    child.close()
+                    while True:
+                        try:
+                            child = pexpect.spawn("gatttool -b " + DEVICE + " -I -t random")
+                            # Connect to the device.
+                            print("Connecting to ")
+                            print(DEVICE)
+                            child.sendline("connect")
+                            #print(child.child_fd)
+                            #try:
+                            child.expect("Connection successful", timeout=5)
+                            print("Connected!")
+                            logging.info("Connected")
+                            lock_status = "unlocked"
+                            lock_status = lockUnlockMachine(locking_code, lock_status)
+                            print("Machine locked!")
+                            break
+                        except:
+                            continue
                 except:
                     pass
                 continue

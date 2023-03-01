@@ -24,7 +24,7 @@ def setup(DEVICE, characteristics):
     # char-write-req 0x0011 0e f7 2a
     while True:
         try:
-            time.sleep(2)
+            time.sleep(0.1)
             if time.time() - current_time > 20:
                 logging.debug("Exiting...")
                 break
@@ -54,7 +54,7 @@ def setup(DEVICE, characteristics):
             keep_alive_code = KEY_DEC + " 7F 80"
             locking_code = KEY_DEC + " 01"
             unlock_code = KEY_DEC + " 00"
-            all_statistics = KEY_DEC + " 00 01 FF FF"
+            all_statistics = KEY_DEC + " 00 02 FF FF"
             # encode keep alive code
             keep_alive_code = BtEncoder.encDecBytes([int(x, 16) for x in keep_alive_code.split()], KEY_DEC)
             keep_alive_code = "".join(["%02x" % d for d in keep_alive_code])
@@ -68,26 +68,33 @@ def setup(DEVICE, characteristics):
             print("Locking code: " + locking_code)
             print("Unlock code: " + unlock_code)
             print("All statistics: " + all_statistics)
-            # child.sendline("char-write-cmd " + characteristics["statistics_command"][1] + " " + all_statistics)
-            # time.sleep(1)
-            # child.sendline("char-read-hnd " + characteristics["statistics_data"][1])
-            # child.expect(": ")
-            # data = child.readline()
-            # #print(b"Statistics data: " + data)
-            # # decode the statistics data
-            # data = [int(x, 16) for x in data.split()]
-            # decoded = BtEncoder.encDecBytes(data, KEY_DEC)
-            # # join decoded data to a list for every three bytes example: [001200, 000000, 000098]
-            # decoded = ["".join(["%02x" % d for d in decoded[i:i+3]]) for i in range(0, len(decoded), 3)]
-            # # for every hex string in decoded list, convert to int
-            # decoded = [int(x, 16) for x in decoded]
-            # CURRENT_STATISTICS = decoded
-            # print("Current Statistics: " + str(decoded))
-            CURRENT_STATISTICS = [0, 0, 0]
-            child.close()
+            child.sendline("char-write-req " + characteristics["statistics_command"][1] + " " + all_statistics)
+            time.sleep(1.5)
+            child.sendline("char-read-hnd " + characteristics["statistics_data"][1])
+            child.expect(": ")
+            data = child.readline()
+            #print(b"Statistics data: " + data)
+            # decode the statistics data
+            data = [int(x, 16) for x in data.split()]
+            decoded = BtEncoder.encDecBytes(data, KEY_DEC)
+            # join decoded data to a list for every three bytes example: [001200, 000000, 000098]
+            decoded = ["".join(["%02x" % d for d in decoded[i:i+3]]) for i in range(0, len(decoded), 3)]
+            # for every hex string in decoded list, convert to int
+            decoded = [int(x, 16) for x in decoded]
+            CURRENT_STATISTICS = decoded
+            print("Current Statistics: " + str(decoded))
+            # write the current statistics to statistics.log as the decoded[0]
+            # read the current statistics from statistics.log and compare with decoded[0]
+            with(open("statistics.log", "r")) as f:
+                current_all = f.read()
+            # if the current statistics is not equal to the statistics in statistics.log, then write the new statistics to statistics.log
+            if  str(decoded[0]) > current_all:
+                with(open("statistics.log", "w")) as f:
+                    f.write(str(decoded[0]))
+            #child.close()
             break
         except:
             print("Failed to connect to device. Retrying...")
             logging.debug("Failed to connect to device at " + str(time.time()) + " Retrying...")
             continue
-    return keep_alive_code, locking_code, unlock_code, KEY_DEC, all_statistics, initial_time, CURRENT_STATISTICS
+    return child, keep_alive_code, locking_code, unlock_code, KEY_DEC, all_statistics, initial_time, CURRENT_STATISTICS
