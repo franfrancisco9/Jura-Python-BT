@@ -73,7 +73,17 @@ db = db_connect()
 lcd = lcddriver.lcd()
 lcd.lcd_clear()  
 
-priceCoffee = dict()
+priceCoffee = {
+    "Americano":0.45,
+    "Espresso":0.45,
+    "Coffee":0.45,
+    "Cappuccino":0.6,
+    "Milkcoffee":0.6,
+    "Espresso Macchiato":0.55,
+    "Latte Macchiato":0.75,
+    "Milk Foam":0.25,
+    "Flat White":0.7
+}
 
 # update priceCoffee with function get_price
 for key in priceCoffee:
