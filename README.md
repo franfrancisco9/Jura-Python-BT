@@ -1,6 +1,6 @@
 # Documentation - Jura Coffee Machine Bluetooth Conection
 
-Disclaimer: This is repo is in active development with a focus on getting a working project so things may change or not work as intended. If you have any questions or suggestions please open an issue. When the project is finished there will be a more formal bluetooth protocol documentation.
+Disclaimer: This repo is in active development with a focus on getting a working project so things may change or not work as intended. If you have any questions or suggestions please open an issue. When the project is finished there will be a more formal bluetooth protocol documentation.
 
 This document serves as documentation for the bluetooth conection between the Jura Coffee Machine and a Raspberry Pi3, with the aim to explain all the steps to follow to make the connection between the two devices, as well as present possible problems and solutions.
 
@@ -20,7 +20,7 @@ The table of contents is as follows:
 
 ## Project Flow
 
-The current project shows a possible implementation of the bluetooth connection between the Pi and the Jura coffee machine using a rfid reader, a lcd and a buzzer as well as a database to store the purchases, purchases and users. This is later presentend in a web interface using phpmyadmin.
+The current project shows a possible implementation of the bluetooth connection between the Pi and the Jura coffee machine using a rfid reader, a lcd and a buzzer as well as a database to store the purchases, balances and users. This is later presentend in a web interface using phpmyadmin.
 
 Add a line to your ```/etc/rc.local``` file to start the script on boot:
 
@@ -38,7 +38,7 @@ The flow of the project is as follows:
 2. A message appears on the LCD letting the user know they must present their tag to the reader and the machine is locked.
 3. The user presents the tag to the reader and the machine is unlocked.
 4. The user can now select a product.
-5. The product is detected and the purches is registered in the database.
+5. The product is detected and the purchases is registered in the database.
 6. The products ends and the program detects it and locks the machine again while also charging the user.
 7. Repeat from step 2.
 
