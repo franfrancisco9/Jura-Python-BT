@@ -72,6 +72,10 @@ db = db_connect()
 # Initialize LCD
 lcd = lcddriver.lcd()
 lcd.lcd_clear()  
+lcd.lcd_display_string("  Starting Program  ", 1)
+lcd.lcd_display_string("     Connecting     ", 2)
+lcd.lcd_display_string("     Please wait!   ", 3)
+lcd.lcd_display_string("  -----> :) <-----  ", 4)
 
 priceCoffee = {
     "Americano":0.45,
