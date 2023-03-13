@@ -1,6 +1,6 @@
 # Documentation - Jura Coffee Machine Bluetooth Conection
 
-Disclaimer: This is repo is in active development so things may change or not work as intended. If you have any questions or suggestions please open an issue.
+Disclaimer: This is repo is in active development with a focus on getting a working project so things may change or not work as intended. If you have any questions or suggestions please open an issue. When the project is finished there will be a more formal bluetooth protocol documentation.
 
 This document serves as documentation for the bluetooth conection between the Jura Coffee Machine and a Raspberry Pi3, with the aim to explain all the steps to follow to make the connection between the two devices, as well as present possible problems and solutions.
 
@@ -8,18 +8,43 @@ The encoding and decoding are come from the [Jura Bluetooth Protocol](https://gi
 
 The table of contents is as follows:
 - [Documentation - Jura Coffee Machine Bluetooth Conection](#documentation---jura-coffee-machine-bluetooth-conection)
+  - [Project Flow](#project-flow)
   - [SSH connection to the Raspberry Pi3](#ssh-connection-to-the-raspberry-pi3)
   - [Bluetooth Conections](#bluetooth-conections)
     - [Obtaining the MAC Address](#obtaining-the-mac-address)
     - [Obatining the Manufacturer Key and Data](#obatining-the-manufacturer-key-and-data)
     - [Characteristics and Services](#characteristics-and-services)
-    - [Commands](#commands)
-    - [Responses](#responses)
-    - [Errors](#errors)
-  - [Necessary Packages](#necessary-packages)
   - [Main Script](#main-script)
   - [Common Errors and Solutions](#common-errors-and-solutions)
   - [Usefull Links](#usefull-links)
+
+## Project Flow
+
+The current project shows a possible implementation of the bluetooth connection between the Pi and the Jura coffee machine using a rfid reader, a lcd and a buzzer as well as a database to store the purchases, purchases and users. This is later presentend in a web interface using phpmyadmin.
+
+Add a line to your ```/etc/rc.local``` file to start the script on boot:
+
+```bash
+sudo python3 /home/pi/Jura-Python-BT/src/blue.py >> /home/pi/Jura-Python-BT/src/templog.txt 2>&1 &
+```
+
+If you want to have logs in case of possible errors use the second part of the above code.
+
+If your jura coffee machine is working and you have the correct setup using a rfid reader, a lcd and a buzzer you should be able to use this project out of the box.
+
+The flow of the project is as follows:
+
+1. The script is started on boot.
+2. A message appears on the LCD letting the user know they must present their tag to the reader and the machine is locked.
+3. The user presents the tag to the reader and the machine is unlocked.
+4. The user can now select a product.
+5. The product is detected and the purches is registered in the database.
+6. The products ends and the program detects it and locks the machine again while also charging the user.
+7. Repeat from step 2.
+
+The code can be easily adjusted to not use the database and functions only with a lock unlock function using the rfid reader.
+
+The statistics part of the code is to control how many products are being paid versus how many were actually made since a user could just unplug the Pi and not pay for the product.
 
 ## SSH connection to the Raspberry Pi3
 To connect to the Raspberry Pi3 via SSH, the following command must be used:
@@ -133,13 +158,7 @@ Inside this menu we can use the `list-attributes` command to see the characteris
 
 I used the command read for all the attributes found with the command list-attributes. The results can be found in the file `services_and_characteristics.txt`. The file contains the UUID of the characteristic or service, the name of the characteristic or service, the value of the characteristic or service and the type of the characteristic or service. 
 
-### Commands
 
-### Responses
-
-### Errors
-
-## Necessary Packages
 
 In case you do not see a bluetooth module in the bluetoothctl menu, you can install the necessary packages by using the following commands:
 
@@ -152,7 +171,7 @@ sudo apt-get install bluetooth bluez libbluetooth-dev libudev-dev
 To run the main script, go into the `src` folder and run the following command:
 
 ```bash
-python3 blue.py
+sudo python3 blue.py
 ```
 
 If you open a seperate terminal and run the command `bluetoothctl` you should see the following:
@@ -168,8 +187,6 @@ The script sends a heartbeat every 15 seconds.
 The script as it stands reads the machine status every second and converts it to the respective alerts that should appear on the terminal.
 
 Furthermore if you send a message to the `start_product` characteristic, you can make a coffee. For more details check the repository mentioned in the beginning. 
-
-Currently working on establishing a connection to the `TX` and `RX` characteristic and sending commands to the coffee machine, hence the file `jura_encodings.py` which contains the encodings of the commands that are sent in the `uart` protocol.
 
 ## Common Errors and Solutions
 
