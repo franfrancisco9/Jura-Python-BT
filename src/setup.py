@@ -3,7 +3,7 @@ import time
 from bt_encoder import BtEncoder
 from jura_encoder import JuraEncoder
 import logging
-
+import os
 logging.basicConfig(
     filename='blue.log',
     level=logging.DEBUG,
@@ -25,8 +25,9 @@ def setup(DEVICE, characteristics):
     while True:
         try:
             time.sleep(0.1)
-            if time.time() - current_time > 20:
-                logging.debug("Exiting...")
+            if time.time() - current_time > 180:
+                logging.debug("Exiting and rebooting")
+                os.system("sudo reboot")
                 break
             print("Run gatttool...")
             child = pexpect.spawn("gatttool -b " + DEVICE + " -I -t random")
@@ -54,7 +55,7 @@ def setup(DEVICE, characteristics):
             keep_alive_code = KEY_DEC + " 7F 80"
             locking_code = KEY_DEC + " 01"
             unlock_code = KEY_DEC + " 00"
-            all_statistics = KEY_DEC + " 00 02 FF FF"
+            all_statistics = KEY_DEC + " 00 10 FF FF"
             # encode keep alive code
             keep_alive_code = BtEncoder.encDecBytes([int(x, 16) for x in keep_alive_code.split()], KEY_DEC)
             keep_alive_code = "".join(["%02x" % d for d in keep_alive_code])
@@ -85,16 +86,16 @@ def setup(DEVICE, characteristics):
             print("Current Statistics: " + str(decoded))
             # write the current statistics to statistics.log as the decoded[0]
             # read the current statistics from statistics.log and compare with decoded[0]
-            with(open("statistics.log", "r")) as f:
-                current_all = f.read()
-            # if the current statistics is not equal to the statistics in statistics.log, then write the new statistics to statistics.log
-            if  str(decoded[0]) > current_all:
-                with(open("statistics.log", "w")) as f:
-                    f.write(str(decoded[0]))
+            # with(open("statistics.log", "r")) as f:
+            #     current_all = f.read()
+            # # if the current statistics is not equal to the statistics in statistics.log, then write the new statistics to statistics.log
+            # if  str(decoded[0]) > current_all:
+            #     with(open("statistics.log", "w")) as f:
+            #         f.write(str(decoded[0]))
             #child.close()
-            break
+            return child, keep_alive_code, locking_code, unlock_code, KEY_DEC, all_statistics, initial_time, CURRENT_STATISTICS
         except:
             print("Failed to connect to device. Retrying...")
             logging.debug("Failed to connect to device at " + str(time.time()) + " Retrying...")
             continue
-    return child, keep_alive_code, locking_code, unlock_code, KEY_DEC, all_statistics, initial_time, CURRENT_STATISTICS
+   

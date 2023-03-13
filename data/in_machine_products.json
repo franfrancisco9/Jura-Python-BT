@@ -1,0 +1,15 @@
+{
+    "in_machine_products":
+    {
+        "0":"Overall",
+        "1":"Americano",
+        "2":"Espresso",
+        "3":"Coffee",
+        "4":"Cappuccino",
+        "5":"Milkcoffee",
+        "6":"Espresso Macchiato",
+        "7":"Latte Macchiato",
+        "8":"Milk Foam",
+        "46":"Flat White"
+    }
+}
