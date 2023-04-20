@@ -63,6 +63,7 @@ JuraEncoder = JuraEncoder()
 DEVICE = os.getenv("DEVICE")
 print(DEVICE)
 
+# get mastercard numbers from the .env file
 mastercard1 = os.getenv("MASTER_CARD_1")
 mastercard2 = os.getenv("MASTER_CARD_2")
 
@@ -117,6 +118,7 @@ def readlineCR(port):
 #global RFIDREADER           
 RFIDREADER = MFRC522.MFRC522()
 
+# define function that scans for RFID card
 def scanCard():
 	RFIDREADER.MFRC522_Init()
 	# Scan for cards    
@@ -164,6 +166,7 @@ def getAlerts(status):
         if status[i] == "1":
             print("Alert in bit " + str(i) + " with the alert " + ALERTS[str(i)])
 
+# run the setup function 
 child, keep_alive_code, locking_code, unlock_code, KEY_DEC, all_statistics, initial_time, CURRENT_STATISTICS = setup(DEVICE, characteristics)
 print(getUID_stats(db))
 if int(getUID_stats(db)) < CURRENT_STATISTICS[0]:
@@ -174,6 +177,7 @@ if int(getUID_stats(db)) < CURRENT_STATISTICS[0]:
     db.commit()
     c.close()
 
+# function that runs if ctrl+c is pressed
 def end_read(signal,frame):
 	global continue_reading
 	beep(2)
@@ -220,6 +224,7 @@ def end_read(signal,frame):
 	_ = lockUnlockMachine(unlock_code, "locked")
 	exit(0)
 
+# function that reads the statistics from the machine
 def read_statistics():
     try:
         product_made = False
@@ -334,7 +339,9 @@ while continue_reading:
     # get hour of the day
     hour = int(time.strftime("%H"))
     minute = int(time.strftime("%M"))
-
+    second = int(time.strftime("%S"))
+    if (hour == 17 and minute == 0 and second == 0):
+        os.system("cd /home/pi/Jura-Python-BT/src/ && sudo ./backupMySQLdb.sh")
     if (hour == 1 or hour == 5) and minute == 30 :
         # reboot pi
         child.sendline("char-write-req " + characteristics["statistics_command"][1] + " " + all_statistics)
@@ -393,6 +400,26 @@ while continue_reading:
                     break
                 except:
                     continue
+        # child.sendline("char-read-hnd " + characteristics["product_progress"][1])
+        # child.expect(": ")
+        # data = child.readline()
+        # data2 = [int(x, 16) for x in data.split()]
+        # print("Encoded: ", data)
+        # decoded = BtEncoder.encDecBytes(data2, KEY_DEC)
+        # as_hex = ["%02x" % d for d in decoded]
+        # print(as_hex)
+        # data = [int(x, 16) for x in data.split()]
+        # decoded = BtEncoder.encDecBytes(data, KEY_DEC)
+        # print("Decoded: ", decoded)
+        # # read machine status and get alerts:
+        # child.sendline("char-read-hnd " + characteristics["machine_status"][1])
+        # child.expect(": ")
+        # data = child.readline()
+        # print(b"Data: " + data)
+        # data = [int(x, 16) for x in data.split()]
+        # decoded = BtEncoder.encDecBytes(data, KEY_DEC)
+        # print("\nDecoded data as HEX: " + " ".join(["%02x" % d for d in decoded]))
+        # getAlerts(" ".join(["%02x" % d for d in decoded]))
 
     if disp_init == 1:
         lcd.lcd_clear()
