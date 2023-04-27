@@ -153,3 +153,4 @@ cython_debug/
 #.idea/
 src/templog.txt
 *.out
+docs/
