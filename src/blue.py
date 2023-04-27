@@ -53,8 +53,12 @@ CHARACTERISTICS = json.load(open("/home/pi/Jura-Python-BT/data/uuids_handles.jso
 ALERTS = json.load(open("/home/pi/Jura-Python-BT/data/alerts.json"))["alerts"]
 ## The dictionary of products the machine can make
 PRODUCTS = json.load(open("/home/pi/Jura-Python-BT/data/products.json"))["products"]
+## The dictionary of prices of the products
+PRICECOFFEE = json.load(open("/home/pi/Jura-Python-BT/data/prices.json"))["pricecoffee"]
 ## The pin for the buzzer
 BUZZER_PIN = 7
+## Load the environment variables from .env file
+load_dotenv()
 ## The BlackBetty2 mac address read from .env file
 DEVICE = os.getenv("DEVICE")
 ## The UID of master card 1 read from .env file
@@ -67,9 +71,9 @@ DB = db_connect()
 BtEncoder = BtEncoder()
 ## The instance of the JuraEncoder class
 JuraEncoder = JuraEncoder()
+## The instance of the RFID reader class           
+RFIDREADER = MFRC522.MFRC522()
 
-#print(DEVICE)
-# print(PRODUCTS)
 # create logger in blue.log in current directory
 logging.basicConfig(
     filename='blue.log',
@@ -103,10 +107,7 @@ def beep(duration):
 
 beep(0.5)
 
-load_dotenv()
-
-
-# Initialize LCD
+## Initialize LCD
 lcd = lcddriver.lcd()
 lcd.lcd_clear()  
 lcd.lcd_display_string("  Starting Program  ", 1)
@@ -114,48 +115,33 @@ lcd.lcd_display_string("     Connecting     ", 2)
 lcd.lcd_display_string("     Please wait!   ", 3)
 lcd.lcd_display_string("  -----> :) <-----  ", 4)
 
-priceCoffee = {
-    "Americano":0.45,
-    "Espresso":0.45,
-    "Coffee":0.45,
-    "Cappuccino":0.6,
-    "Milkcoffee":0.6,
-    "Espresso Macchiato":0.55,
-    "Latte Macchiato":0.75,
-    "Milk Foam":0.25,
-    "Flat White":0.7
-}
+# update PRICECOFFEE with function get_price
+for key in PRICECOFFEE:
+    PRICECOFFEE[key] = get_price(DB, key)
 
-# update priceCoffee with function get_price
-for key in priceCoffee:
-    priceCoffee[key] = get_price(DB, key)
-
-print(priceCoffee)
-
-# define function that locks or unlocks the machine
 def lockUnlockMachine(code, lock_status, unlock_code = "77e1"):
-    '''
+    '''!
     Lock or unlock the machine
-    Input: code to unlock, lock_status, unlock_code (default 77e1)
-    Output: lock_status (locked or unlocked)
+    @param code The code to unlock the machine.
+    @param lock_status The current status of the machine.
+    @param unlock_code The code to unlock the machine (default 77e1).
+
+    @return lock_status The new status of the machine ("locked" or "unlocked")
     '''
     child.sendline("char-write-req " + CHARACTERISTICS["barista_mode"][1] + " " + code)
-    #print(child.readline())
-    #print(child.readline())
+
     if code == unlock_code:
         lock_status = "unlocked"
     else:
         lock_status = "locked"
+
     return lock_status
 
-#global RFIDREADER           
-RFIDREADER = MFRC522.MFRC522()
-
 # define function that scans for RFID card
-def scanCard():
-	'''
-	Scan for RFID card
-	Output: UID of the card or 0 if no card is found
+def scanCard(): 
+	'''!
+	Scan for RFID tag
+    @return uid_str The UID of the tag or "0" if no tag is found
 	'''
 	RFIDREADER.MFRC522_Init()
 	# Scan for cards    
@@ -176,16 +162,12 @@ def scanCard():
 	else:
 		return "0"
 # define function that locks or unlocks the machine
-
-        
-# define function that receives decoded machine status and converts it to the corresponding alerts (if any)
-# if corresponing bit is not set, the alert is not active
-# remove key from the beggining
+      
 def getAlerts(status):
     '''!
-    Get alerts from the machine status
+    Get alerts from the decoded machine status and convert it to the corresponding alerts (if any)
+    If the corresponding bit is not set, the alert is not active
     @param status: machine status
-
     @return list of alerts according to ..data/alerts.json
     '''
     # status comes like this: 2a 00 04 00 00 04 40 00 00 00 00 00 00 00 00 00 00 00 00 06
@@ -198,8 +180,6 @@ def getAlerts(status):
     status = [bin(int(byte,16))[2:]for byte in status]
     # divide each item in status into 8 bits
     status = [list(byte.zfill(8)) for byte in status]
-    # print status
-    # print(status)
     # combine into one string
     status = ''.join([item for sublist in status for item in sublist])
  
@@ -209,11 +189,13 @@ def getAlerts(status):
         if status[i] == "1":
             print("Alert in bit " + str(i) + " with the alert " + ALERTS[str(i)])
 
-# run the setup function 
+## Get all necessary variables from setup.py -> check file for more information
 child, keep_alive_code, locking_code, unlock_code, KEY_DEC, all_statistics, initial_time, CURRENT_STATISTICS = setup(DEVICE, CHARACTERISTICS)
-print(getUID_stats(DB))
+
+
 if int(getUID_stats(DB)) < CURRENT_STATISTICS[0]:
     # change the UID in the database Benutzerverwaltung to CURRENT_STATISTICS[0] where id = 1000
+    # this ensures the current number of coffees made by the machine is in the database
     print("updating the value in the table")
     c = DB.cursor()
     c.execute("UPDATE Benutzerverwaltung SET UID = " + str(CURRENT_STATISTICS[0]) + " WHERE id = 1000;")	
@@ -222,7 +204,7 @@ if int(getUID_stats(DB)) < CURRENT_STATISTICS[0]:
 
 # function that runs if ctrl+c is pressed
 def end_read(signal,frame):
-	'''
+	'''!
 	End the program
 	Runs when Ctrl+C is pressed
 	'''
@@ -273,9 +255,9 @@ def end_read(signal,frame):
 
 # function that reads the statistics from the machine
 def read_statistics():
-    '''
+    '''!
     Read the statistics from the machine
-    output: list of statistics
+    @return list of statistics
     '''
     try:
         product_made = False
@@ -322,7 +304,9 @@ def read_statistics():
          logging.error("Error reading statistics " + str(e))
          return False
 
-# if no arguments assume that emegeny unlock is 0
+# if no arguments assume that emergency unlock is 0
+# if emergency unlock is 0, lock the machine
+# if emergency unlock is 1, unlock the machine
 if len(sys.argv) == 1:
     emergency_unlock = 0
 else:
@@ -337,9 +321,8 @@ else:
     print("Machine unlocked!")   
     exit()
 
-# Hook the SIGINT
+# Hook the SIGINT to end_read function (ctrl + c)
 signal.signal(signal.SIGINT, end_read)
-
 
 # Init buzzer
 setupBuzzer(BUZZER_PIN)
@@ -362,15 +345,14 @@ lcd.lcd_display_string("  -----> :) <-----  ", 4)
 time.sleep(1)
 beep(0.01)
 
-port.flushInput()
-
-buttonPress = False
-continue_reading = True
-
 # Welcome message
 print("Welcome to the BlackBetty 2")
 print("Press Ctrl-C to stop.")
 
+port.flushInput()
+
+buttonPress = False
+continue_reading = True
 lastSeen = ""
 counter = 0
 disp_init = 1
@@ -618,7 +600,7 @@ while continue_reading:
                                 preName = get_vorname(DB, uid_str) 
                                 print("as_hex[2]: ", as_hex[2])
                                 product_made = PRODUCTS[str(int(as_hex[2], 16))]
-                                price_product = priceCoffee[product_made]
+                                price_product = PRICECOFFEE[product_made]
                                 lcd.lcd_display_string(" " + product_made + " detected  ", 1)
                                 lcd.lcd_display_string(" Will charge " + str(price_product), 2)
                                 lcd.lcd_display_string(" " + preName + " ", 3)
@@ -636,7 +618,7 @@ while continue_reading:
                                 value_new = 0
                                 if chosen == 1:    
                                     print("Setting value for uid: " + client_to_pay + " Name: " + preName)
-                                    value_new = value - priceCoffee[product_made]
+                                    value_new = value - PRICECOFFEE[product_made]
                                 if value_new > 0 and chosen == 1:
                                     print("PAYING")
                                     # beep(0.05)

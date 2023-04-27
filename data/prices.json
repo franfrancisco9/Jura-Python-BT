@@ -1,0 +1,14 @@
+{
+    "pricecoffee":
+    {
+        "Americano":0.45,
+        "Espresso":0.45,
+        "Coffee":0.45,
+        "Cappuccino":0.6,
+        "Milkcoffee":0.6,
+        "Espresso Macchiato":0.55,
+        "Latte Macchiato":0.75,
+        "Milk Foam":0.25,
+        "Flat White":0.7
+    }
+}
