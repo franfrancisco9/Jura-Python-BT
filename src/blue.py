@@ -1,5 +1,30 @@
 #!/usr/bin/env python3
 
+##
+# @mainpage Jura-Python-BT Documentation
+#
+# @section description_main Description
+# This is the documentation for the Jura-Python-BT project.
+# The documentations focus on the main script blue.py.
+# The projects consists of a Raspberry Pi 3B+ that communicates with a Jura coffee machine via Bluetooth.
+# Additionally, the Raspberry Pi communicates with a database, a LCD display and a RFID reader.
+# This is all used to create a coffee machine that can be used by multiple users, where each user has a specific RFID tag.
+# This way the machine can be locked until a user scans his/her RFID tag.
+# The user can then choose a coffee and will be charged for it from the database.
+#
+
+##
+# @file blue.py
+#
+# @brief Main script to run for BlackBetty.
+#
+#
+# @section author_blue Author(s)
+# - Created by Francisco Fonseca on 25/04/2023.
+# 
+#
+
+# Imports
 import pexpect
 import time
 from bt_encoder import BtEncoder
@@ -21,12 +46,30 @@ import sys
 import logging
 import json
 
-characteristics = json.load(open("/home/pi/Jura-Python-BT/data/uuids_handles.json"))["characteristics"]
+## Global Constants
+## The dictionary of UUIDs and handles of the bluetooth characteristics
+CHARACTERISTICS = json.load(open("/home/pi/Jura-Python-BT/data/uuids_handles.json"))["characteristics"]
+## The dictionary of alerts from machine status
 ALERTS = json.load(open("/home/pi/Jura-Python-BT/data/alerts.json"))["alerts"]
+## The dictionary of products the machine can make
 PRODUCTS = json.load(open("/home/pi/Jura-Python-BT/data/products.json"))["products"]
-in_machine_products = json.load(open("/home/pi/Jura-Python-BT/data/in_machine_products.json"))["in_machine_products"]
+## The pin for the buzzer
+BUZZER_PIN = 7
+## The BlackBetty2 mac address read from .env file
+DEVICE = os.getenv("DEVICE")
+## The UID of master card 1 read from .env file
+MASTERCARD1 = os.getenv("MASTER_CARD_1")
+## The UID of master card 2 read from .env file
+MASTERCARD2 = os.getenv("MASTER_CARD_2")
+## The open database connection
+DB = db_connect()
+## The instance of the BtEncoder class
+BtEncoder = BtEncoder()
+## The instance of the JuraEncoder class
+JuraEncoder = JuraEncoder()
 
-print(PRODUCTS)
+#print(DEVICE)
+# print(PRODUCTS)
 # create logger in blue.log in current directory
 logging.basicConfig(
     filename='blue.log',
@@ -34,41 +77,34 @@ logging.basicConfig(
     format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S',
 )
-# Define pin for buzzer
-BuzzerPin = 7
 
 def setupBuzzer(pin):
-	global BuzzerPin
-	BuzzerPin = pin
+	'''!
+	Setup buzzer
+	@param pin The pin number of the buzzer.
+	'''
+	global BUZZER_PIN
+	BUZZER_PIN = pin
 	GPIO.setmode(GPIO.BOARD)	# Numbers GPIOs by physical location
-	GPIO.setup(BuzzerPin, GPIO.OUT)
-	GPIO.output(BuzzerPin, GPIO.LOW)
+	GPIO.setup(BUZZER_PIN, GPIO.OUT)
+	GPIO.output(BUZZER_PIN, GPIO.LOW)
 	
 def beep(duration):
+	'''!
+	Make a beep sound
+	@param duration The time in ms of the beep.
+	'''
     # Init buzzer
-	# setupBuzzer(BuzzerPin)
-	# GPIO.output(BuzzerPin, GPIO.HIGH)
+	# setupBuzzer(BUZZER_PIN)
+	# GPIO.output(BUZZER_PIN, GPIO.HIGH)
 	# time.sleep(duration)
-	# GPIO.output(BuzzerPin, GPIO.LOW)
-    print("beep off")
+	# GPIO.output(BUZZER_PIN, GPIO.LOW)
+	print("beep off")
 
 beep(0.5)
 
 load_dotenv()
 
-BtEncoder = BtEncoder()
-JuraEncoder = JuraEncoder()
-
-# BlackBetty2 mac address read from .env file
-DEVICE = os.getenv("DEVICE")
-print(DEVICE)
-
-# get mastercard numbers from the .env file
-mastercard1 = os.getenv("MASTER_CARD_1")
-mastercard2 = os.getenv("MASTER_CARD_2")
-
-# Open database connection
-db = db_connect()
 
 # Initialize LCD
 lcd = lcddriver.lcd()
@@ -92,13 +128,18 @@ priceCoffee = {
 
 # update priceCoffee with function get_price
 for key in priceCoffee:
-    priceCoffee[key] = get_price(db, key)
+    priceCoffee[key] = get_price(DB, key)
 
 print(priceCoffee)
 
 # define function that locks or unlocks the machine
 def lockUnlockMachine(code, lock_status, unlock_code = "77e1"):
-    child.sendline("char-write-req " + characteristics["barista_mode"][1] + " " + code)
+    '''
+    Lock or unlock the machine
+    Input: code to unlock, lock_status, unlock_code (default 77e1)
+    Output: lock_status (locked or unlocked)
+    '''
+    child.sendline("char-write-req " + CHARACTERISTICS["barista_mode"][1] + " " + code)
     #print(child.readline())
     #print(child.readline())
     if code == unlock_code:
@@ -107,19 +148,15 @@ def lockUnlockMachine(code, lock_status, unlock_code = "77e1"):
         lock_status = "locked"
     return lock_status
 
-def readlineCR(port):
-	rv = ""
-	while True:
-		ch = port.read()
-		rv += ch
-		if ch == '\r' or ch == '':
-			return rv
-                
 #global RFIDREADER           
 RFIDREADER = MFRC522.MFRC522()
 
 # define function that scans for RFID card
 def scanCard():
+	'''
+	Scan for RFID card
+	Output: UID of the card or 0 if no card is found
+	'''
 	RFIDREADER.MFRC522_Init()
 	# Scan for cards    
 	(status,TagType) = RFIDREADER.MFRC522_Request(RFIDREADER.PICC_REQIDL)
@@ -145,6 +182,12 @@ def scanCard():
 # if corresponing bit is not set, the alert is not active
 # remove key from the beggining
 def getAlerts(status):
+    '''!
+    Get alerts from the machine status
+    @param status: machine status
+
+    @return list of alerts according to ..data/alerts.json
+    '''
     # status comes like this: 2a 00 04 00 00 04 40 00 00 00 00 00 00 00 00 00 00 00 00 06
     # remove key from the beggining
     status = status[3:]
@@ -167,18 +210,22 @@ def getAlerts(status):
             print("Alert in bit " + str(i) + " with the alert " + ALERTS[str(i)])
 
 # run the setup function 
-child, keep_alive_code, locking_code, unlock_code, KEY_DEC, all_statistics, initial_time, CURRENT_STATISTICS = setup(DEVICE, characteristics)
-print(getUID_stats(db))
-if int(getUID_stats(db)) < CURRENT_STATISTICS[0]:
+child, keep_alive_code, locking_code, unlock_code, KEY_DEC, all_statistics, initial_time, CURRENT_STATISTICS = setup(DEVICE, CHARACTERISTICS)
+print(getUID_stats(DB))
+if int(getUID_stats(DB)) < CURRENT_STATISTICS[0]:
     # change the UID in the database Benutzerverwaltung to CURRENT_STATISTICS[0] where id = 1000
     print("updating the value in the table")
-    c = db.cursor()
+    c = DB.cursor()
     c.execute("UPDATE Benutzerverwaltung SET UID = " + str(CURRENT_STATISTICS[0]) + " WHERE id = 1000;")	
-    db.commit()
+    DB.commit()
     c.close()
 
 # function that runs if ctrl+c is pressed
 def end_read(signal,frame):
+	'''
+	End the program
+	Runs when Ctrl+C is pressed
+	'''
 	global continue_reading
 	beep(2)
 	print("Ctrl+C captured, ending read.")
@@ -198,9 +245,9 @@ def end_read(signal,frame):
 	print("Bakcup done!")
 	logging.info("Backup done")
 	logging.info("Program ended")
-	child.sendline("char-write-req " + characteristics["statistics_command"][1] + " " + all_statistics)
+	child.sendline("char-write-req " + CHARACTERISTICS["statistics_command"][1] + " " + all_statistics)
 	time.sleep(1.5)
-	child.sendline("char-read-hnd " + characteristics["statistics_data"][1])
+	child.sendline("char-read-hnd " + CHARACTERISTICS["statistics_data"][1])
 	child.expect(": ")
 	data = child.readline()
 	#print(b"Statistics data: " + data)
@@ -213,28 +260,32 @@ def end_read(signal,frame):
 	decoded = [int(x, 16) for x in decoded]
 	CURRENT_STATISTICS = decoded
 	print("Current Statistics: " + str(decoded))
-	if int(getUID_stats(db)) < CURRENT_STATISTICS[0]:
+	if int(getUID_stats(DB)) < CURRENT_STATISTICS[0]:
 		# change the UID in the database Benutzerverwaltung to CURRENT_STATISTICS[0] where id = 1000
-		print("updating the value in the table from", getUID_stats(db), "to", CURRENT_STATISTICS[0])
-		c = db.cursor()
+		print("updating the value in the table from", getUID_stats(DB), "to", CURRENT_STATISTICS[0])
+		c = DB.cursor()
 		c.execute("UPDATE Benutzerverwaltung SET UID = " + str(CURRENT_STATISTICS[0]) + " WHERE id = 1000;")	
-		db.commit()
+		DB.commit()
 		c.close()
-	db.close()
+	DB.close()
 	_ = lockUnlockMachine(unlock_code, "locked")
 	exit(0)
 
 # function that reads the statistics from the machine
 def read_statistics():
+    '''
+    Read the statistics from the machine
+    output: list of statistics
+    '''
     try:
         product_made = False
         # write the all statistics command to statistics_command_handle
-        child.sendline("char-write-cmd " + characteristics["statistics_command"][1] + " " + all_statistics)
+        child.sendline("char-write-cmd " + CHARACTERISTICS["statistics_command"][1] + " " + all_statistics)
         #print("All statistics sent!")
         time.sleep(1.5)
         # read the data from product progress handle
         # read the statistics data from statistics_data_handle
-        child.sendline("char-read-hnd " + characteristics["statistics_data"][1])
+        child.sendline("char-read-hnd " + CHARACTERISTICS["statistics_data"][1])
         child.expect(": ")
         data = child.readline()
         #print(b"Statistics data: " + data)
@@ -258,12 +309,12 @@ def read_statistics():
                 product_made = PRODUCTS[str(i)]
                 print("Value changed to " + str(decoded[i]) + " from " + str(CURRENT_STATISTICS[i]))
                 CURRENT_STATISTICS[i] = decoded[i]
-        if int(getUID_stats(db)) < CURRENT_STATISTICS[0]:
+        if int(getUID_stats(DB)) < CURRENT_STATISTICS[0]:
             # change the UID in the database Benutzerverwaltung to CURRENT_STATISTICS[0] where id = 1000
-            print("updating the value in the table from", getUID_stats(db), "to", CURRENT_STATISTICS[0])
-            c = db.cursor()
+            print("updating the value in the table from", getUID_stats(DB), "to", CURRENT_STATISTICS[0])
+            c = DB.cursor()
             c.execute("UPDATE Benutzerverwaltung SET UID = " + str(CURRENT_STATISTICS[0]) + " WHERE id = 1000;")	
-            db.commit()
+            DB.commit()
             c.close()
         return product_made     
     except Exception as e:
@@ -291,7 +342,7 @@ signal.signal(signal.SIGINT, end_read)
 
 
 # Init buzzer
-setupBuzzer(BuzzerPin)
+setupBuzzer(BUZZER_PIN)
 
 while True:
     try:
@@ -325,7 +376,8 @@ counter = 0
 disp_init = 1
 payment_to_date = 1
 client_to_pay = ""
-admin_locked = 0
+admin_locked = 0 
+''' 1 = unlocked, 0 = locked '''
 admin_prod = 0
 total_prod = 0
 payed_prod = 0
@@ -333,6 +385,13 @@ payed_prod = 0
 
 time.sleep(1)
 while continue_reading:
+    '''
+    Main loop
+    In this loop the program makes sure the connection is alive and the machine is locked
+    Scans for tags
+    If a tag is found, it unlocks the machine and waits for a product to be made
+    If a product is made, it locks the machine again and charges the user
+    '''
     #time.sleep(0.2)
     current_time = int(time.time() - initial_time)
     #print("Current time: " + str(current_time))
@@ -344,9 +403,9 @@ while continue_reading:
         os.system("cd /home/pi/Jura-Python-BT/src/ && sudo ./backupMySQLdb.sh")
     if (hour == 1 or hour == 5) and minute == 30 :
         # reboot pi
-        child.sendline("char-write-req " + characteristics["statistics_command"][1] + " " + all_statistics)
+        child.sendline("char-write-req " + CHARACTERISTICS["statistics_command"][1] + " " + all_statistics)
         time.sleep(1.5)
-        child.sendline("char-read-hnd " + characteristics["statistics_data"][1])
+        child.sendline("char-read-hnd " + CHARACTERISTICS["statistics_data"][1])
         child.expect(": ")
         data = child.readline()
         #print(b"Statistics data: " + data)
@@ -359,12 +418,12 @@ while continue_reading:
         decoded = [int(x, 16) for x in decoded]
         CURRENT_STATISTICS = decoded
         print("Current Statistics: " + str(decoded))
-        if int(getUID_stats(db)) < CURRENT_STATISTICS[0]:
+        if int(getUID_stats(DB)) < CURRENT_STATISTICS[0]:
             # change the UID in the database Benutzerverwaltung to CURRENT_STATISTICS[0] where id = 1000
             print("updating the value in the table")
-            c = db.cursor()
+            c = DB.cursor()
             c.execute("UPDATE Benutzerverwaltung SET UID = " + str(CURRENT_STATISTICS[0]) + " WHERE id = 1000;")
-            db.commit()
+            DB.commit()
             c.close()
         print("Rebooting pi")
         lcd.lcd_clear()
@@ -374,7 +433,7 @@ while continue_reading:
 
     if current_time % 5 == 0:
        
-        child.sendline("char-write-req " +  characteristics["heartbeat"][1] + " " + keep_alive_code)
+        child.sendline("char-write-req " +  CHARACTERISTICS["heartbeat"][1] + " " + keep_alive_code)
         data = child.readline()
         data += child.readline()
         if "Disconnected" in str(data):
@@ -400,7 +459,7 @@ while continue_reading:
                     break
                 except:
                     continue
-        # child.sendline("char-read-hnd " + characteristics["product_progress"][1])
+        # child.sendline("char-read-hnd " + CHARACTERISTICS["product_progress"][1])
         # child.expect(": ")
         # data = child.readline()
         # data2 = [int(x, 16) for x in data.split()]
@@ -412,7 +471,7 @@ while continue_reading:
         # decoded = BtEncoder.encDecBytes(data, KEY_DEC)
         # print("Decoded: ", decoded)
         # # read machine status and get alerts:
-        # child.sendline("char-read-hnd " + characteristics["machine_status"][1])
+        # child.sendline("char-read-hnd " + CHARACTERISTICS["machine_status"][1])
         # child.expect(": ")
         # data = child.readline()
         # print(b"Data: " + data)
@@ -438,7 +497,7 @@ while continue_reading:
         if prod != False:
             admin_prod += 1
             total_prod += 1
-            set_buylist(db, "01", prod)
+            set_buylist(DB, "01", prod)
             print("Admin made a product that was not payed for")
 
     if uid_str != "0":
@@ -447,7 +506,7 @@ while continue_reading:
         if admin_locked == 0:
             lcd.lcd_clear()
 
-        if (uid_str == mastercard1) or (uid_str == mastercard2):
+        if (uid_str == MASTERCARD1) or (uid_str == MASTERCARD2):
             if lock_status == "locked":
                 lock_status = lockUnlockMachine(unlock_code, lock_status)
                 print("Machine unlocked permanently!")
@@ -471,7 +530,7 @@ while continue_reading:
             try:
                 if lastSeen == "":
                     lastSeen = uid_str
-                    value = get_value(db, uid_str)
+                    value = get_value(DB, uid_str)
                     if value < 0:
                          # alert user in lcd that they need to charge balance
                         lcd.lcd_clear()
@@ -494,8 +553,8 @@ while continue_reading:
 
                     else:
                         value_str = str("Balance: " + str('%.2f' % value) + " EUR")
-                        lastName = get_name(db, uid_str)
-                        preName = get_vorname(db, uid_str)                
+                        lastName = get_name(DB, uid_str)
+                        preName = get_vorname(DB, uid_str)                
                         welStr = str("Hello " + preName)
                         msgStr3 = str("Hold for 2s please  ")
                         msgStr4 = str("Chip below          ")
@@ -536,10 +595,10 @@ while continue_reading:
                             chosen = 0
                             break
                         if int(time.time() - intial_time_2) % 2 == 0:
-                            child.sendline("char-write-req " + characteristics["heartbeat"][1] + " " + keep_alive_code)
+                            child.sendline("char-write-req " + CHARACTERISTICS["heartbeat"][1] + " " + keep_alive_code)
                         try:
                             # read the data from product progress handle
-                            child.sendline("char-read-hnd " + characteristics["product_progress"][1])
+                            child.sendline("char-read-hnd " + CHARACTERISTICS["product_progress"][1])
                             try: 
                                  child.expect(": ")
                             except:
@@ -556,9 +615,9 @@ while continue_reading:
                                 print("PRODUCT MADE")
                                 client_to_pay = uid_str
                                 lcd.lcd_clear()
-                                preName = get_vorname(db, uid_str) 
+                                preName = get_vorname(DB, uid_str) 
                                 print("as_hex[2]: ", as_hex[2])
-                                product_made = in_machine_products[str(int(as_hex[2], 16))]
+                                product_made = PRODUCTS[str(int(as_hex[2], 16))]
                                 price_product = priceCoffee[product_made]
                                 lcd.lcd_display_string(" " + product_made + " detected  ", 1)
                                 lcd.lcd_display_string(" Will charge " + str(price_product), 2)
@@ -583,13 +642,13 @@ while continue_reading:
                                     # beep(0.05)
                                     # time.sleep(0.1)
                                     # beep(0.05)
-                                    set_value(db, client_to_pay, value_new)
+                                    set_value(DB, client_to_pay, value_new)
                                     payed_prod += 1
                                     total_prod += 1
                                     payment_to_date = 1
-                                    preName = get_vorname(db, client_to_pay) 
+                                    preName = get_vorname(DB, client_to_pay) 
                                     #beep(1)
-                                    set_buylist(db, client_to_pay, product_made)
+                                    set_buylist(DB, client_to_pay, product_made)
                                     lcd.lcd_clear()
                                     msgStr1 = str(product_made + " was made!")
                                     msgStr2 = str("  Happy betty :)  ")
@@ -607,12 +666,12 @@ while continue_reading:
                                 elif value_new < 0 and chosen == 1:
                                     print("PAYING")
                                     lcd.lcd_clear()
-                                    set_value(db, client_to_pay, value_new)
+                                    set_value(DB, client_to_pay, value_new)
                                     payed_prod += 1
                                     total_prod += 1
                                     payment_to_date = 1
                                     #beep(1)
-                                    set_buylist(db, client_to_pay, product_made)
+                                    set_buylist(DB, client_to_pay, product_made)
                                     msgStr1 = str(product_made + " was made!")
                                     msgStr2 =   str(" Thank you!")
                                     msgStr3 =   str("Balance < 0!")
@@ -627,7 +686,7 @@ while continue_reading:
                                     disp_init = 1
                                     product_made = False
                                 lcd.lcd_clear()
-                                preName = get_vorname(db, uid_str) 
+                                preName = get_vorname(DB, uid_str) 
                                 lcd.lcd_display_string("  Product Ended     ", 1)
                                 lcd.lcd_display_string("      charged       ", 2)
                                 lcd.lcd_display_string(" " + preName + " ", 3)
