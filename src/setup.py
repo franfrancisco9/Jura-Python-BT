@@ -10,15 +10,32 @@ logging.basicConfig(
     format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S',
 )
+##
+# @file setup.py
+#
+# @brief In this file the connection to the Jura coffee machine is established.
+#
+#
+# @section author_blue Author(s)
+# - Created by Francisco Fonseca on 30/04/2023.
+# 
+#
 
+## The instance of the BtEncoder class
 BtEncoder = BtEncoder()
+## The instance of the JuraEncoder class
 JuraEncoder = JuraEncoder()
 def setup(DEVICE, characteristics):
+    '''!
+    @brief This function is used to setup the connection to the Jura coffee machine.
+    @param DEVICE The MAC address of the Jura coffee machine.
+    @param characteristics A dictionary containing the characteristics of the Jura coffee machine.
+    @return child, keep_alive_code, locking_code, unlock_code, KEY_DEC, all_statistics, initial_time, CURRENT_STATISTICS
+    '''
     current_time = time.time()
     # send command gatttool -b ED:95:43:60:13:92 -I -t random to system with no output using pexpect
     # then send command connect to gatttool 
     # then send command char-write-cmd 0x0011 0e f7 2a to gatttool
-
     # gatttool -b ED:95:43:60:13:92 -I -t random
     # connect
     # char-write-req 0x0011 0e f7 2a
@@ -84,15 +101,6 @@ def setup(DEVICE, characteristics):
             decoded = [int(x, 16) for x in decoded]
             CURRENT_STATISTICS = decoded
             print("Current Statistics: " + str(decoded))
-            # write the current statistics to statistics.log as the decoded[0]
-            # read the current statistics from statistics.log and compare with decoded[0]
-            # with(open("statistics.log", "r")) as f:
-            #     current_all = f.read()
-            # # if the current statistics is not equal to the statistics in statistics.log, then write the new statistics to statistics.log
-            # if  str(decoded[0]) > current_all:
-            #     with(open("statistics.log", "w")) as f:
-            #         f.write(str(decoded[0]))
-            #child.close()
             return child, keep_alive_code, locking_code, unlock_code, KEY_DEC, all_statistics, initial_time, CURRENT_STATISTICS
         except:
             print("Failed to connect to device. Retrying...")
