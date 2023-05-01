@@ -137,7 +137,7 @@ def lockUnlockMachine(code, lock_status, unlock_code = "77e1"):
 
     return lock_status
 
-# define function that scans for RFID card
+
 def scanCard(): 
 	'''!
 	Scan for RFID tag
@@ -161,7 +161,7 @@ def scanCard():
 		return uid_str
 	else:
 		return "0"
-# define function that locks or unlocks the machine
+
       
 def getAlerts(status):
     '''!
@@ -202,7 +202,6 @@ if int(getUID_stats(DB)) < CURRENT_STATISTICS[0]:
     DB.commit()
     c.close()
 
-# function that runs if ctrl+c is pressed
 def end_read(signal,frame):
 	'''!
 	End the program
@@ -253,7 +252,6 @@ def end_read(signal,frame):
 	_ = lockUnlockMachine(unlock_code, "locked")
 	exit(0)
 
-# function that reads the statistics from the machine
 def read_statistics():
     '''!
     Read the statistics from the machine
@@ -351,6 +349,7 @@ print("Press Ctrl-C to stop.")
 
 port.flushInput()
 
+## The variables used in the main loop
 buttonPress = False
 continue_reading = True
 lastSeen = ""
@@ -359,15 +358,13 @@ disp_init = 1
 payment_to_date = 1
 client_to_pay = ""
 admin_locked = 0 
-''' 1 = unlocked, 0 = locked '''
 admin_prod = 0
 total_prod = 0
 payed_prod = 0
-#number = 0 
 
 time.sleep(1)
 while continue_reading:
-    '''
+    '''!
     Main loop
     In this loop the program makes sure the connection is alive and the machine is locked
     Scans for tags
@@ -531,8 +528,6 @@ while continue_reading:
                         lastSeen = ""
                         client_to_pay = ""
                         disp_init = 1
-
-
                     else:
                         value_str = str("Balance: " + str('%.2f' % value) + " EUR")
                         lastName = get_name(DB, uid_str)
@@ -743,7 +738,6 @@ while continue_reading:
             beep(0.2)
             time.sleep(0.1)
             beep(0.2)
-
             msgStr1 = str("Chip removed?")
             msgStr3 = str("Product not chosen")
             msgStr4 = str("bye! :(")
@@ -754,5 +748,5 @@ while continue_reading:
             disp_init = 1
             client_to_pay = ""
             lastSeen = ""
-            lock_status = lockUnlockMachine(locking_code, lock_status)
-        time.sleep(0.1)                
+            lock_status = zockUnlockMachine(locking_code, lock_status)
+        time.sleep(0.1)   z            
