@@ -4,6 +4,8 @@ Disclaimer: This repo is in active development with a focus on getting a working
 
 This document serves as documentation for the bluetooth conection between the Jura Coffee Machine and a Raspberry Pi3, with the aim to explain all the steps to follow to make the connection between the two devices, as well as present possible problems and solutions.
 
+The documentation for the project can be seen at https://franfrancisco9.github.io/Jura-Python-BT/.
+
 The encoding and decoding are come from the [Jura Bluetooth Protocol](https://github.com/Jutta-Proto/protocol-cpp) project. A special shoutout to @COM8 for the help.
 
 The table of contents is as follows:
