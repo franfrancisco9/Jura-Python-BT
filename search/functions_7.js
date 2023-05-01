@@ -1,0 +1,10 @@
+var searchData=
+[
+  ['get_5fchip_0',['get_chip',['../namespacedatabase.html#a65f8f632d6470c123f92e3d5dfa0dca5',1,'database.get_chip()'],['../namespaceold__blue.html#af3dc194775cbfed53dab5a448a5149be',1,'old_blue.get_chip()'],['../namespaceblue__tests.html#afa41024cf2d1f4cd6a72ade4c9ababd3',1,'blue_tests.get_chip(UID)']]],
+  ['get_5fname_1',['get_name',['../namespaceblue__tests.html#a88245fa060bf425e5ec535b2cd0e3e7e',1,'blue_tests.get_name()'],['../namespacedatabase.html#ad4d13766e63766af49a65ada99d8f1a5',1,'database.get_name()'],['../namespaceold__blue.html#a283b732a280d3fb4094321043a1de215',1,'old_blue.get_name()']]],
+  ['get_5fprice_2',['get_price',['../namespaceblue__tests.html#a4839d03d33996b40835b248a699bb263',1,'blue_tests.get_price()'],['../namespacedatabase.html#ae5af90dc2b9ee006a1e61b9a7abf0b8b',1,'database.get_price()'],['../namespaceold__blue.html#a2784abb3c9d34465306717f704d797d4',1,'old_blue.get_price()']]],
+  ['get_5fvalue_3',['get_value',['../namespacedatabase.html#a32d640b716dcd011b43beb6e94ee9659',1,'database.get_value()'],['../namespaceold__blue.html#a0c7febec9487d01325c899c90df79472',1,'old_blue.get_value()'],['../namespaceblue__tests.html#a82ae8d4df3bc38e54928324dbecbaca6',1,'blue_tests.get_value(UID)']]],
+  ['get_5fvorname_4',['get_vorname',['../namespaceblue__tests.html#a237e80525eec5dbff95e640a0ee44869',1,'blue_tests.get_vorname()'],['../namespacedatabase.html#a3fb90ae3f0d64d4dcc915089f68056a3',1,'database.get_vorname()'],['../namespaceold__blue.html#af8dfc3cbb7ff14ed7817f6ce2e2cab05',1,'old_blue.get_vorname()']]],
+  ['getalerts_5',['getAlerts',['../namespaceblue.html#ac6237606e6959670d49436f3264ad08d',1,'blue.getAlerts()'],['../namespaceblue__tests.html#a6482dd6569c280d16d9ff880de0ede8c',1,'blue_tests.getAlerts()'],['../namespaceold__blue.html#a33e46fbab3475d881db9c498a57811d3',1,'old_blue.getAlerts()']]],
+  ['getuid_5fstats_6',['getUID_stats',['../namespacedatabase.html#a9d7694521c58571cf799606b570173ec',1,'database.getUID_stats()'],['../namespaceold__blue.html#abf9870f751c194849260407ab4f4ba6f',1,'old_blue.getUID_stats()']]]
+];

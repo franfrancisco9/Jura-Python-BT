@@ -1,0 +1,23 @@
+var searchData=
+[
+  ['machine_5fstatus_0',['machine_status',['../namespaceblue__tests.html#af6d38f2a019d2fde11f871022a5aa756',1,'blue_tests.machine_status()'],['../namespaceold__blue.html#a70a93e5c2b494998b6730555bdf92085',1,'old_blue.machine_status()']]],
+  ['machine_5fstatus_5fhandle_1',['machine_status_handle',['../namespaceold__blue.html#a4f4365b4e3d466fa8be0575131f556fe',1,'old_blue.machine_status_handle()'],['../namespaceblue__tests.html#afcb8d229a3ed6d74b491400f60d7d4f7',1,'blue_tests.machine_status_handle()']]],
+  ['mastercard1_2',['mastercard1',['../namespaceold__blue.html#afcfaae24a08670ad780643cfb6fd64d9',1,'old_blue.mastercard1()'],['../namespaceblue__tests.html#af445fc94add062c9e49bc13dcd180d35',1,'blue_tests.mastercard1()']]],
+  ['mastercard1_3',['MASTERCARD1',['../namespaceblue.html#aea2043f73a38372c065d2799fb6c9c4d',1,'blue']]],
+  ['mastercard2_4',['MASTERCARD2',['../namespaceblue.html#a7d90eb9ea01eebcc4c99e582b914fccd',1,'blue']]],
+  ['mastercard2_5',['mastercard2',['../namespaceold__blue.html#a88fda62667da0a83fe42ac9580b84a23',1,'old_blue.mastercard2()'],['../namespaceblue__tests.html#a16e650e495918b0dffb54742a5c5feae',1,'blue_tests.mastercard2()']]],
+  ['max_5flen_6',['MAX_LEN',['../classMFRC522_1_1MFRC522.html#a2b282e38578ca53e935554913029ae64',1,'MFRC522::MFRC522']]],
+  ['mi_5ferr_7',['MI_ERR',['../classMFRC522_1_1MFRC522.html#ab5c1f8b46000dd5b06dddf4dbcbba7d4',1,'MFRC522::MFRC522']]],
+  ['mi_5fnotagerr_8',['MI_NOTAGERR',['../classMFRC522_1_1MFRC522.html#a9a4f4e5fc4d8a6f645039b0447548476',1,'MFRC522::MFRC522']]],
+  ['mi_5fok_9',['MI_OK',['../classMFRC522_1_1MFRC522.html#aa1b441c87c1ee1383b704bcefbe74ad4',1,'MFRC522::MFRC522']]],
+  ['mifarereader_10',['MIFAREReader',['../namespaceDump.html#a710ed822c49c97a672cd4cbd3201292d',1,'Dump.MIFAREReader()'],['../namespaceRead.html#aae7694ea386e396a4ee79de7e026c9e4',1,'Read.MIFAREReader()'],['../namespaceWrite.html#a641cfd5805952b773c26981b93678afa',1,'Write.MIFAREReader()'],['../namespaceblue__tests.html#a40f19b70cb4b98cb40ddec829198cdc2',1,'blue_tests.MIFAREReader()']]],
+  ['mifarereg_11',['MifareReg',['../classMFRC522_1_1MFRC522.html#a3de877295df193e895302f3d92934ef4',1,'MFRC522::MFRC522']]],
+  ['minute_12',['minute',['../namespaceblue.html#a08882672ace1511929e93d59fca17cca',1,'blue.minute()'],['../namespaceold__blue.html#ac5f46a9bc73785616d86c5d68b03a467',1,'old_blue.minute()']]],
+  ['modereg_13',['ModeReg',['../classMFRC522_1_1MFRC522.html#ac107eb458a90ffd3992afbb17bdc3b81',1,'MFRC522::MFRC522']]],
+  ['modgspreg_14',['ModGsPReg',['../classMFRC522_1_1MFRC522.html#a621875d72a03a7910a2cf9645f52c5ea',1,'MFRC522::MFRC522']]],
+  ['modwidthreg_15',['ModWidthReg',['../classMFRC522_1_1MFRC522.html#ac99a96685dde16759233e4a304b8134f',1,'MFRC522::MFRC522']]],
+  ['msgstr1_16',['msgStr1',['../namespaceblue.html#ac0ee4fdcbd22275bad951496a0222048',1,'blue.msgStr1()'],['../namespaceblue__tests.html#ab461282573f9e744542a40c5c7becb71',1,'blue_tests.msgStr1()'],['../namespaceold__blue.html#af1219e53608d1472d9d050308459e9c0',1,'old_blue.msgStr1()']]],
+  ['msgstr2_17',['msgStr2',['../namespaceblue.html#a8c1221eb50a909725598aefb96e7b291',1,'blue.msgStr2()'],['../namespaceold__blue.html#a742ef8a25c716dc5a89b43430cc9eb43',1,'old_blue.msgStr2()'],['../namespaceblue__tests.html#ab53126a3743d659262c1e0ea103bac73',1,'blue_tests.msgStr2()']]],
+  ['msgstr3_18',['msgStr3',['../namespaceblue.html#a3b263eea7483605710e604d6baf85e11',1,'blue.msgStr3()'],['../namespaceblue__tests.html#a2e030068bc2e911e7e0f3cd8fedf7c32',1,'blue_tests.msgStr3()'],['../namespaceold__blue.html#a60e817a8dd85bdedcedaade2eca86670',1,'old_blue.msgStr3()']]],
+  ['msgstr4_19',['msgStr4',['../namespaceblue.html#a4c7e5fb1b8337709f89656cd2b1a8427',1,'blue.msgStr4()'],['../namespaceblue__tests.html#a577bdf1fded719cd35b7063e953e3b63',1,'blue_tests.msgStr4()'],['../namespaceold__blue.html#ae0d8f3acf56d52e273cbedb927b17af1',1,'old_blue.msgStr4()']]]
+];

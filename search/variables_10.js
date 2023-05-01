@@ -1,0 +1,25 @@
+var searchData=
+[
+  ['reserved00_0',['Reserved00',['../classMFRC522_1_1MFRC522.html#a6c652eef87572fbb3f3d12f9ca3f5b49',1,'MFRC522::MFRC522']]],
+  ['reserved01_1',['Reserved01',['../classMFRC522_1_1MFRC522.html#ac3e1d8f89396b319a49b46e3523f34c5',1,'MFRC522::MFRC522']]],
+  ['reserved10_2',['Reserved10',['../classMFRC522_1_1MFRC522.html#ad07b5252948d509fb268d0b685a4924f',1,'MFRC522::MFRC522']]],
+  ['reserved11_3',['Reserved11',['../classMFRC522_1_1MFRC522.html#a80c86dda5e1120a3a1f7b068daec5751',1,'MFRC522::MFRC522']]],
+  ['reserved12_4',['Reserved12',['../classMFRC522_1_1MFRC522.html#ade01591b34fadb95efe6b3a76cf56e52',1,'MFRC522::MFRC522']]],
+  ['reserved13_5',['Reserved13',['../classMFRC522_1_1MFRC522.html#a7ae0e7f95764b5b47ba6d47da3b34153',1,'MFRC522::MFRC522']]],
+  ['reserved14_6',['Reserved14',['../classMFRC522_1_1MFRC522.html#a73e6f9f4b3f3248103e21f6b88d562ad',1,'MFRC522::MFRC522']]],
+  ['reserved20_7',['Reserved20',['../classMFRC522_1_1MFRC522.html#afd98d9f78efc7b8c858ddb9e4cb19373',1,'MFRC522::MFRC522']]],
+  ['reserved21_8',['Reserved21',['../classMFRC522_1_1MFRC522.html#a391c8ed8090b02494e396154ee8876e7',1,'MFRC522::MFRC522']]],
+  ['reserved22_9',['Reserved22',['../classMFRC522_1_1MFRC522.html#a0718671f3fb62488d1f85a4bc3054c0e',1,'MFRC522::MFRC522']]],
+  ['reserved30_10',['Reserved30',['../classMFRC522_1_1MFRC522.html#a62573fc014e2478731e8c47a83307802',1,'MFRC522::MFRC522']]],
+  ['reserved31_11',['Reserved31',['../classMFRC522_1_1MFRC522.html#aaa6091c50c966dd73ea0fbb0af4f9dde',1,'MFRC522::MFRC522']]],
+  ['reserved32_12',['Reserved32',['../classMFRC522_1_1MFRC522.html#acf02e39c3b90213f7763df0b537b1dcf',1,'MFRC522::MFRC522']]],
+  ['reserved33_13',['Reserved33',['../classMFRC522_1_1MFRC522.html#a09a66a620e8a534389fe45c9726ca5da',1,'MFRC522::MFRC522']]],
+  ['reserved34_14',['Reserved34',['../classMFRC522_1_1MFRC522.html#a76dbf00da7b8f9fba9cc92c2abc60517',1,'MFRC522::MFRC522']]],
+  ['rfcfgreg_15',['RFCfgReg',['../classMFRC522_1_1MFRC522.html#a899f256a5804f3c7f504b9f252f257e1',1,'MFRC522::MFRC522']]],
+  ['rfidreader_16',['RFIDREADER',['../namespaceblue.html#adf88e2ab4c8070d0b4f86add2c91a2d4',1,'blue.RFIDREADER()'],['../namespaceold__blue.html#a3e9cc182b3c41c42af11269fbc5891c9',1,'old_blue.RFIDREADER()']]],
+  ['rs_17',['Rs',['../namespacelcddriver.html#a33329b848818afa502b60bf94bf57aeb',1,'lcddriver']]],
+  ['rw_18',['Rw',['../namespacelcddriver.html#a92162d47a8a2d896b04a3ddd3b2b329b',1,'lcddriver']]],
+  ['rxmodereg_19',['RxModeReg',['../classMFRC522_1_1MFRC522.html#aa6eab2e27a2dcf2e47b760a4199e260f',1,'MFRC522::MFRC522']]],
+  ['rxselreg_20',['RxSelReg',['../classMFRC522_1_1MFRC522.html#adf5bfb7fea5334663f4126f9ad491188',1,'MFRC522::MFRC522']]],
+  ['rxthresholdreg_21',['RxThresholdReg',['../classMFRC522_1_1MFRC522.html#a02fedb086abe449694766eaa59eff690',1,'MFRC522::MFRC522']]]
+];

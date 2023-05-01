@@ -1,0 +1,24 @@
+var searchData=
+[
+  ['c_0',['c',['../namespaceblue.html#a0d11c02477313e9065dd9cd3c7cb05ee',1,'blue.c()'],['../namespaceold__blue.html#a36ec07dc4590c82363d0fd626f057dcb',1,'old_blue.c()']]],
+  ['calulatecrc_1',['CalulateCRC',['../classMFRC522_1_1MFRC522.html#a49a01890743b64023ebd91dc094ffda2',1,'MFRC522::MFRC522']]],
+  ['cent_2',['cent',['../namespaceRead.html#a8abc957935dba5727d53f5c3811bbbff',1,'Read']]],
+  ['characteristics_3',['characteristics',['../namespaceold__blue.html#a728848b4c0a896d84a639d9a18c4e637',1,'old_blue.characteristics()'],['../namespaceblue__tests.html#a23cf322b3a42cdb8abf71d6e30ef10cb',1,'blue_tests.characteristics()']]],
+  ['characteristics_4',['CHARACTERISTICS',['../namespaceblue.html#aaee378a99ea1a0e0a0beca548542ebea',1,'blue']]],
+  ['child_5',['child',['../namespaceold__blue.html#ad071e544afe06ff7e2efb97c69e46375',1,'old_blue.child()'],['../namespaceblue__tests.html#abec389c69794f5cfeccbf054ebd4531e',1,'blue_tests.child()'],['../namespaceblue.html#a269686f782273578f028d010b35ed475',1,'blue.child()']]],
+  ['chosen_6',['chosen',['../namespaceold__blue.html#ab78b59611da97076d660ef733f6f3995',1,'old_blue.chosen()'],['../namespaceblue__tests.html#a335a0e05e5f7cc9f8b63c98965ceccb5',1,'blue_tests.chosen()'],['../namespaceblue.html#a84f6103b9b36a81c497fd8110340bd69',1,'blue.chosen()']]],
+  ['clearbitmask_7',['ClearBitMask',['../classMFRC522_1_1MFRC522.html#aaea8af6c7d2d77fe984bbff8e2d8862f',1,'MFRC522::MFRC522']]],
+  ['client_5fto_5fpay_8',['client_to_pay',['../namespaceblue.html#ae95017a705028f5bba17b3ec6eb5926d',1,'blue.client_to_pay()'],['../namespaceblue__tests.html#ab25adfe8f97e4d732d70dc5d592f2064',1,'blue_tests.client_to_pay()'],['../namespaceold__blue.html#a2b0a685de0260747859e6582f41d04c2',1,'old_blue.client_to_pay()']]],
+  ['collreg_9',['CollReg',['../classMFRC522_1_1MFRC522.html#ab22abb38f5316523de44e4423560c57a',1,'MFRC522::MFRC522']]],
+  ['commandreg_10',['CommandReg',['../classMFRC522_1_1MFRC522.html#ab9c714835626ff0703eb92549c33c0aa',1,'MFRC522::MFRC522']]],
+  ['commienreg_11',['CommIEnReg',['../classMFRC522_1_1MFRC522.html#a5037939c3b84753dccb00d9df9b8f2c6',1,'MFRC522::MFRC522']]],
+  ['commirqreg_12',['CommIrqReg',['../classMFRC522_1_1MFRC522.html#ac6c9ba1ee7dd7523cfdc71dd0738b710',1,'MFRC522::MFRC522']]],
+  ['continue_5freading_13',['continue_reading',['../namespaceWrite.html#a06487db20b1425095d60750bc02041b9',1,'Write.continue_reading()'],['../namespaceblue.html#a75e243bf43c26cc5e9f2f000ad58c7e5',1,'blue.continue_reading()'],['../namespaceblue__tests.html#a0185c7ab2d133c322f75c401047fbe71',1,'blue_tests.continue_reading()'],['../namespaceDump.html#aa279d7958fe517fc591f3ae838ba79cb',1,'Dump.continue_reading()'],['../namespaceold__blue.html#a662528bfcbbfda3a0789e7771843c978',1,'old_blue.continue_reading()'],['../namespaceRead.html#a205bfc958b8533066062751b7817f368',1,'Read.continue_reading()']]],
+  ['controlreg_14',['ControlReg',['../classMFRC522_1_1MFRC522.html#adecb6f9e0fbd146d77412dba9db81c1a',1,'MFRC522::MFRC522']]],
+  ['counter_15',['counter',['../namespaceblue__tests.html#af2f9fb556a7cfd5dcd0d7c90961b1e3b',1,'blue_tests.counter()'],['../namespaceblue.html#a22d724e2ef56a049e80a2aa328e66090',1,'blue.counter()'],['../namespaceold__blue.html#a7d89034f3f715e21da1bc27f51d1c561',1,'old_blue.counter()']]],
+  ['crcresultregl_16',['CRCResultRegL',['../classMFRC522_1_1MFRC522.html#aa306fdc787f0133d4a8a486101c66a8e',1,'MFRC522::MFRC522']]],
+  ['crcresultregm_17',['CRCResultRegM',['../classMFRC522_1_1MFRC522.html#aa5d7bcdea2a5ff8bc5b4bdcb87147b1e',1,'MFRC522::MFRC522']]],
+  ['current_5fstatistics_18',['CURRENT_STATISTICS',['../namespaceblue.html#a72839023af49267a737452f9d8d7bf5c',1,'blue.CURRENT_STATISTICS()'],['../namespaceblue__tests.html#a2a07e9666985d622f3c907daea389bb3',1,'blue_tests.CURRENT_STATISTICS()'],['../namespaceold__blue.html#a60f9492ca7bca07a60eeec5cfdf54bbb',1,'old_blue.CURRENT_STATISTICS()']]],
+  ['current_5ftime_19',['current_time',['../namespaceblue.html#a9f53493cd276cc263a662b4388cde69a',1,'blue.current_time()'],['../namespaceold__blue.html#a03db41c3ec0456add517f89739a92edc',1,'old_blue.current_time()']]],
+  ['cwgspreg_20',['CWGsPReg',['../classMFRC522_1_1MFRC522.html#afab54a53d5448c0f683162bf591321a3',1,'MFRC522::MFRC522']]]
+];
